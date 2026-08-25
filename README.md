@@ -29,8 +29,54 @@ Cortex brings together Markdown notes, a daily diary, contacts, a built-in calen
 > The application is actively being developed and may contain bugs, incomplete features, or breaking changes. **Use Cortex at your own risk and keep regular backups of your vault and important data.**
 
 <div align="center">
-<img src="assets/screenshots/screenshot1.png" alt="Cortex" width="500">
+<img src="assets/screenshots/note-read.png" alt="A note open in Cortex, with wikilinks, tags, and the calendar sidebar" width="800">
 </div>
+
+---
+## Screenshots
+
+<table>
+<tr>
+<td width="50%">
+<img src="assets/screenshots/note-edit.png" alt="Markdown editing with the full formatting toolbar and live preview">
+<p align="center"><sub>Live-preview markdown editing</sub></p>
+</td>
+<td width="50%">
+<img src="assets/screenshots/diary.png" alt="A daily diary entry">
+<p align="center"><sub>Diary</sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="assets/screenshots/contact.png" alt="A contact with tags and notes">
+<p align="center"><sub>Contacts</sub></p>
+</td>
+<td width="50%">
+<img src="assets/screenshots/calendar-event.png" alt="A calendar event linked to a contact, a note, and a tag">
+<p align="center"><sub>Calendar events, linked to contacts, notes, and tags</sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="assets/screenshots/search.png" alt="Vault-wide search with the Cmd/Ctrl+K command palette">
+<p align="center"><sub>Vault-wide search (<code>Cmd/Ctrl+K</code>)</sub></p>
+</td>
+<td width="50%">
+<img src="assets/screenshots/settings.png" alt="Appearance settings — theme, text size, and fonts">
+<p align="center"><sub>Appearance settings — theme, text size, fonts</sub></p>
+</td>
+</tr>
+<tr>
+<td width="50%">
+<img src="assets/screenshots/about.png" alt="The About Cortex page">
+<p align="center"><sub>About</sub></p>
+</td>
+<td width="50%">
+<img src="assets/screenshots/note-light.png" alt="A note shown in light theme">
+<p align="center"><sub>Light theme</sub></p>
+</td>
+</tr>
+</table>
 
 ---
 ## Features

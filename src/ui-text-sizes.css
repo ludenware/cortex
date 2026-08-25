@@ -1,0 +1,29 @@
+/* Text-size file — the one place to edit every piece of text's font-size
+   across the app. Three sizes, covering everything from buttons to page
+   titles — every font-size declaration anywhere in the app (left panel,
+   right panel, center panel, settings, every modal/popup) reads one of
+   these three directly, e.g. `font-size: var(--text-main);`. Change a
+   value here and it applies everywhere that tier is used at once.
+
+   --text-title  the few standalone headings/hero numbers (page titles,
+                 the "About Cortex" version badge, a contact's name)
+   --text-main   almost everything else — labels, buttons, list rows,
+                 body text, inputs
+   --text-sub    the smaller second line of two-row stacked buttons
+                 (e.g. .action-btn-sub's "NOTE" under "CLOSE") and a
+                 handful of fine-print captions
+
+   Two things are deliberately NOT on this scale — both relative (em)
+   sizes that scale off whatever the surrounding text size is, not a fixed
+   value, so there's nothing fixed to name:
+   - Markdown heading scale (.cm-lp-heading.cm-lp-h1–h6 in
+     center-panel.css) and inline code (0.9em/0.92em).
+   - .cm-lp-hidden's `font-size: 0` and .contact-mention-link's
+     `font-size: inherit` are mechanism, not a size choice, so they're
+     untouched too. */
+
+:root {
+  --text-title: 28px;
+  --text-main: 14px;
+  --text-sub: 12px;
+}

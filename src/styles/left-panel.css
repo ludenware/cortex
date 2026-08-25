@@ -1,0 +1,600 @@
+/* Left panel — the whole left sidebar: outer shell, the "Application"
+   zone nav (Notes/Diary/Contacts), the file browser (tree + its actions),
+   and the contacts list (which occupies the same slot as the file browser
+   when the Contacts zone is active). One file because these were
+   previously split across LeftPanel.css/FileBrowser.css/ContactsList.css
+   with no single place to look for "the left panel's" styling — see the
+   CSS-restructure plan for why. Colors come from ui-colors.css (--nav-*,
+   --dir-*, --button-*); button shape from ui-sizing.css (--button-radius);
+   text size from ui-text-sizes.css (--text-main/--text-sub). */
+
+/* ===== PANEL SHELL ===== */
+
+.left-panel {
+  width: var(--left-panel-width);
+  background: var(--bg-secondary);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.left-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 48px 15px 15px;
+  -webkit-app-region: drag;
+}
+
+.settings-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: solid 1px;
+  border-color: var(--border);
+  background: var(--bg-primary);
+  width: 30px;
+  height: 30px;
+  border-radius: var(--button-radius);
+  color: var(--text-color);
+  -webkit-app-region: no-drag;
+}
+
+.settings-button:hover {
+  background: var(--bg-hover);
+  color: var(--text-color);
+}
+
+.vault-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 15px 15px;
+  border-top: 1px solid var(--border);
+  flex-shrink: 0;
+  -webkit-app-region: no-drag;
+}
+
+.vault-footer-info {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.vault-footer-icon {
+  color: var(--accent);
+  flex-shrink: 0;
+}
+
+.vault-footer-name {
+  font-size: var(--text-main);
+  font-weight: 600;
+  color: var(--success);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  background-color: var(--bg-primary);
+  border-radius: var(--button-radius);
+  font-size: var(--text-main);
+  font-weight: 600;
+  color: var(--text-color);
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.vault-action-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-color);
+  border-color: var(--text-color);
+}
+
+/* ===== APPLICATION ZONE NAV (Notes/Diary/Contacts) ===== */
+
+.app-zone {
+  padding: 0 10px 10px;
+  -webkit-app-region: no-drag;
+}
+
+.app-zone-label,
+.browser-zone-label {
+  font-size: var(--text-main);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-color);
+  margin-bottom: 10px;
+  padding: 0 5px;
+}
+
+.app-zone-tabs {
+  display: flex;
+  flex-direction: column;
+  gap: 0px;
+}
+
+/* Colors come from ui-colors.css's --nav-* pair. */
+.zone-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 10px;
+  border: 1px solid transparent;
+  border-radius: var(--button-radius);
+  font-size: var(--text-main);
+  font-weight: 500;
+  background: var(--nav-primary-bg);
+  color: var(--nav-primary-text);
+  transition: all 0.12s;
+}
+
+.zone-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-color);
+}
+
+.zone-tab.active {
+  border-color: var(--nav-active-text);
+  color: var(--nav-active-text);
+  background: var(--nav-active-bg);
+}
+
+.active-tag-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 12px;
+  margin-top: 8px;
+  background: var(--accent-muted);
+  color: var(--accent);
+  font-size: var(--text-main);
+  border-radius: var(--radius);
+}
+
+.active-tag-banner button {
+  display: flex;
+  color: var(--accent);
+  opacity: 0.8;
+}
+
+.active-tag-banner button:hover {
+  opacity: 1;
+}
+
+.browser-zone {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+  border-top: 1px solid var(--border);
+  padding-top: 10px;
+  -webkit-app-region: no-drag;
+}
+
+.browser-zone > :last-child:not(.browser-zone-label) {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ===== FILE BROWSER (Notes/Diary tree) ===== */
+
+.file-browser {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+/* Diary navigation — same horizontal row placement as the Notes actions
+   row (Note/Folder/File), not stacked, so the two zones' toolbars match. */
+.fb-diary-btn {
+  justify-content: center;
+  font-size: var(--text-main);
+  padding: 10px 10px;
+  border-radius: var(--button-radius);
+  flex: 1;
+}
+
+.tree-icon.diary {
+  color: var(--accent, #818cf8);
+  opacity: 0.8;
+}
+
+.tree-item.diary-locked {
+  cursor: default;
+}
+
+.file-browser-actions {
+  display: flex;
+  gap: 10px;
+  padding: 0px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Same button family as the action row's Close/Encrypt/Delete buttons
+   (.action-btn, center-panel.css) — both read from the shared
+   --button-bg/--button-hover/--button-active trio in ui-colors.css, so
+   they always look like one consistent set of buttons. */
+.fb-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 5px;
+  width: 100px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--button-radius);
+  background: var(--button-bg);
+  font-size: var(--text-main);
+  font-weight: 600;
+  color: var(--text-color);
+  transition: all 0.12s;
+  margin-bottom: 10px;
+}
+
+.fb-action-btn:hover {
+  background: var(--button-hover);
+  color: var(--text-color);
+}
+
+.fb-action-btn:active {
+  background: var(--button-active);
+}
+
+/* Comes after .fb-action-btn on purpose — .fb-diary-today combines both
+   classes on the same element, and this needs to win the border-color
+   cascade over .fb-action-btn's own `border: 1px solid var(--border)`. */
+.fb-diary-today {
+  border-color: var(--accent);
+  background: var(--accent-muted, rgba(99, 102, 241, 0.15));
+  color: var(--accent, #818cf8);
+  font-weight: 600;
+}
+
+/* Horizontal scroll (overflow-x: auto) instead of clipping — long file
+   names and deep nesting stay fully readable by scrolling sideways rather
+   than being cut off, now that the bottom cwd bar (which used to show the
+   current path some other way) is gone. See .tree-item/.tree-name below
+   for the part that lets rows actually grow wider than the panel instead
+   of being force-shrunk. */
+.file-tree {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 4px 0;
+  min-height: 0;
+}
+
+/* Colors come from ui-colors.css's --dir-* pair. width: max-content +
+   min-width: 100% (instead of a flat width: 100%) lets a row grow wider
+   than the panel when its content needs it — a fixed 100% would just
+   clip long names — while still filling the full row width for the
+   common short-name case. */
+.tree-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  width: max-content;
+  min-width: 100%;
+  padding: 5px 8px;
+  font-size: var(--text-main);
+  border: 1px solid transparent;
+  border-radius: var(--button-radius);
+  background: var(--dir-primary-bg);
+  color: var(--dir-primary-text);
+  text-align: left;
+  transition: all 0.12s;
+}
+
+.tree-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-color);
+}
+
+.tree-item.active {
+  border-color: var(--dir-active-text);
+  background: var(--dir-active-bg);
+  color: var(--dir-active-text);
+}
+
+/* Distinct from plain :hover (which uses the same --bg-hover) so the
+   "next file/folder will be created here" location reads clearly even when
+   the mouse isn't over it — a tinted background plus an accent-colored
+   inset left border, via box-shadow so it doesn't shift layout the way a
+   real border would. */
+.tree-item.folder-active {
+  background: var(--bg-primary);
+  color: var(--text-color);
+  border-color: var(--border);
+}
+
+.tree-item.folder-active .tree-icon.folder {
+  color: var(--accent);
+}
+
+.tree-icon.attachment {
+  color: var(--text-color);
+  opacity: 0.7;
+}
+
+.tree-icon.encrypted {
+  color: var(--danger);
+  opacity: 0.85;
+}
+
+.tree-chevron {
+  flex-shrink: 0;
+  opacity: 0.6;
+}
+
+.tree-chevron-spacer {
+  width: 15px;
+  flex-shrink: 0;
+}
+
+.tree-icon.folder {
+  color: #fbbf24;
+}
+
+.tree-icon.file {
+  color: var(--text-color);
+}
+
+/* No overflow/ellipsis here on purpose — a flex item with overflow:hidden
+   gets an implicit min-width:0, which is what let this shrink and truncate
+   before. Leaving overflow at its default (visible) restores the item's
+   natural content-based minimum width, so a long name pushes .tree-item
+   wider instead of clipping, and .file-tree's scrollbar above reveals it. */
+.tree-name {
+  flex: 1;
+  white-space: nowrap;
+}
+
+.tree-delete {
+  opacity: 0;
+  padding: 2px;
+  color: var(--text-color);
+  transition: opacity 0.12s;
+}
+
+.tree-item:hover .tree-delete {
+  opacity: 1;
+}
+
+.tree-delete:hover {
+  color: var(--danger);
+}
+
+.file-browser-empty {
+  padding: 16px;
+  font-size: var(--text-main);
+  color: var(--text-color);
+}
+
+.attachments-list {
+  border-top: 1px solid var(--border);
+  padding: 8px 10px;
+  max-height: 120px;
+  overflow-y: auto;
+}
+
+.attachments-header {
+  font-size: var(--text-main);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-color);
+  margin-bottom: 6px;
+}
+
+.attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-main);
+  color: var(--text-color);
+  padding: 2px 0;
+}
+
+.inline-form {
+  display: flex;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+}
+
+.inline-form input {
+  flex: 1;
+  padding: 6px 8px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: var(--text-main);
+  outline: none;
+}
+
+.inline-form input:focus {
+  border-color: var(--accent);
+}
+
+.inline-form button {
+  padding: 6px 10px;
+  background: var(--accent);
+  color: white;
+  border-radius: var(--button-radius);
+  font-size: var(--text-main);
+}
+
+.fb-toolbar-row {
+  display: flex;
+  align-items: stretch;
+  border-bottom: 1px solid var(--border);
+}
+
+.fb-icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  flex-shrink: 0;
+  color: var(--text-color);
+  border-left: 1px solid var(--border);
+  transition: background 0.12s, color 0.12s;
+}
+
+.fb-icon-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-color);
+}
+
+.fb-icon-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.vault-root-bar {
+  flex: 1;
+  min-width: 0;
+  padding: 10px 10px;
+  font-size: var(--text-main);
+  font-weight: 700;
+  background: var(--accent-muted);
+  color: var(--success);
+  box-shadow: inset 2px 0px 0px var(--success);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vault-root-bar:hover {
+  background: var(--bg-hover);
+}
+
+.vault-root-bar.active {
+  background: var(--accent-muted);
+  color: var(--success);
+  box-shadow: inset 2px 0px 0px var(--success);
+}
+
+.browser-divider {
+  height: 1px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.tree-name-open {
+  font-weight: 700;
+  color: var(--text-color);
+}
+
+.tree-item.active .tree-name-open {
+  color: var(--accent);
+}
+
+.tree-item.dragging {
+  opacity: 0.45;
+}
+
+.tree-item.drop-target {
+  outline: 1px dashed var(--accent);
+  background: var(--accent-muted);
+}
+
+/* The one specific folder currently being hovered over mid-drag — turns
+   green (via --success) so it's unambiguous which of the possibly-several
+   highlighted drop-target folders will actually receive the drop right
+   now. Comes after .drop-target so it wins the cascade on the row that has
+   both classes at once. */
+.tree-item.drop-target.drag-hover {
+  outline: 1px dashed var(--success);
+  background: color-mix(in srgb, var(--success) 18%, transparent);
+  color: var(--success);
+}
+
+.tree-item.drop-target.drag-hover .tree-icon.folder {
+  color: var(--success);
+}
+
+/* ===== CONTACTS LIST (occupies the file browser's slot when the
+   Contacts zone is active) ===== */
+
+.contacts-list {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.contacts-actions {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.contacts-items {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 0;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: var(--text-main);
+  border: 1px solid transparent;
+  border-radius: var(--button-radius);
+  color: var(--text-color);
+  text-align: left;
+  transition: all 0.12s;
+}
+
+.contact-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-color);
+}
+
+.contact-item.active {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.contact-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.contact-name {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contact-company {
+  display: block;
+  font-size: var(--text-main);
+  color: var(--text-color);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

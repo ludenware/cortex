@@ -1,0 +1,331 @@
+/* Settings — the whole Settings page: category sidebar, appearance/font
+   controls, and the About Cortex page. Already fairly self-contained
+   (one component, SettingsView.tsx, owned this whole page), moved to
+   styles/ purely for consistency with the other zone files — see the
+   CSS-restructure plan. Colors from ui-colors.css; button shape from
+   ui-sizing.css (--button-radius); text size from ui-text-sizes.css
+   (--text-title/--text-main). */
+
+.settings-view-outer {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px 20px;
+}
+
+.settings-body {
+  flex: 1;
+  display: flex;
+  overflow: hidden;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--canvas-shadow);
+  min-height: 0;
+}
+
+.settings-categories {
+  flex: 0 0 200px;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 15px;
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+}
+
+.settings-category-item {
+  text-align: left;
+  padding: 10px 15px;
+  border: 1px solid transparent;
+  border-radius: var(--button-radius);
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight);
+  color: var(--text-color);
+  transition: background 0.12s, color 0.12s;
+}
+
+.settings-category-item:hover {
+  background: var(--bg-hover);
+  color: var(--text-color);
+}
+
+.settings-category-item.active {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.settings-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 15px 15px;
+  position: relative;
+}
+
+.settings-toast {
+  position: absolute;
+  top: 16px;
+  right: 24px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  background: var(--accent-muted);
+  color: var(--accent);
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
+}
+
+.settings-section-group {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 480px;
+}
+
+.settings-section-title {
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-color);
+  margin-bottom: 15px;
+}
+
+.settings-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-options-row {
+  flex-direction: row;
+  gap: 20px;
+}
+
+.settings-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-main);
+  color: var(--text-color);
+  cursor: pointer;
+}
+
+.settings-font-group {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: center;
+  gap: 14px 20px;
+}
+
+.settings-font-label {
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
+  color: var(--text-color);
+}
+
+.settings-font-select {
+  width: 100%;
+  max-width: 260px;
+  padding: 7px 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-color);
+  font-size: var(--text-main);
+}
+
+.settings-font-select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.settings-option input[type='radio'] {
+  width: auto;
+  accent-color: var(--accent);
+}
+
+.about-settings {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  max-width: 850px;
+}
+
+/* Cortex is the product, so it's the sole hero mark — full size, centered,
+   with its name and version on one line directly beneath it. */
+.about-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* cortex-logo.png (the "full" variant) has ~8% of transparent padding
+   baked into the bottom of its own canvas (measured via each pixel's
+   alpha channel: content bbox stops 56px short of the 700px canvas
+   bottom) — at this 420px render size that's ~34px of dead space no
+   amount of `gap`/`margin` between elements can close, since it's empty
+   pixels *inside* the image file itself, not spacing around it. Pulling
+   the image up by that same amount compensates for it. Scoped to this
+   one hero usage (via AboutSettings.tsx's className prop) rather than
+   the shared `.app-logo-img` base rule, since the other four places
+   AppLogo renders elsewhere in the app don't have this problem — they
+   use the "mark" variant (cortex-icon.png), a different file. */
+.about-hero-logo {
+  margin-bottom: -15px;
+}
+
+.about-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.about-app-name {
+  font-size: var(--text-title);
+  font-weight: var(--ui-font-weight-strong);
+  letter-spacing: -0.01em;
+  color: var(--text-color);
+}
+
+.about-version-badge {
+  font-size: var(--text-title);
+  font-weight: var(--ui-font-weight-strong);
+  color: var(--accent);
+  background: var(--accent-muted);
+  padding: 4px 20px;
+  border-radius: 999px;
+}
+
+.about-tagline {
+  font-size: var(--text-main);
+  color: var(--text-color);
+  margin-top: 15px;
+}
+
+/* Two zones side by side below the hero divider: the ludenware mark gets
+   its own dedicated left column (a proper "made by" showcase, not a small
+   inline badge) while Follow/Connect stack together in the right column. */
+.about-zones {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 15px;
+  align-items: start;
+}
+
+.about-zone-ludenware {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 410px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.about-ludenware-zone-logo {
+  width: 395px;
+  height: 395px;
+  object-fit: contain;
+}
+  
+.about-zone-links {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.about-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px 20px;
+}
+
+.repo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 20px 20px;
+}
+
+.about-links-title {
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-color);
+}
+
+.about-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight);
+  color: var(--accent);
+  width: fit-content;
+}
+
+.about-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+.repo-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight);
+  color: var(--accent);
+  width: fit-content;
+}
+
+.repo-link:hover {
+  color: var(--accent-hover);
+  text-decoration: underline;
+}
+
+/* Text Size is Chromium's native content zoom (see TextSizeContext.tsx),
+   which scales *everything* uniformly by design — including these images —
+   so there's no way to keep them a fixed on-screen size "for free". Gaps
+   stay at 20px at every size (per explicit instruction) — only the two
+   logos shrink, in local CSS-pixel terms, as text size goes up. Margin
+   compensation on the hero logo scales proportionally with its width (see
+   the .about-hero-logo comment above for why that compensation exists at
+   all — it's correcting for transparent padding baked into the source
+   PNG, not spacing between elements). */
+[data-text-size='medium'] .about-hero-logo {
+  width: 280px;
+  height: 280px;
+  margin-bottom: -8px;
+}
+
+[data-text-size='medium'] .about-ludenware-zone-logo {
+  width: 280px;
+  height: 280px;
+}
+
+[data-text-size='large'] .about-hero-logo {
+  width: 230px;
+  height: 230px;
+  margin-bottom: -7px;
+}
+
+[data-text-size='large'] .about-ludenware-zone-logo {
+  width: 230px;
+  height: 230px;
+}

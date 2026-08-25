@@ -1,0 +1,140 @@
+/* Color file — the one central place to edit every color in the app.
+   Every other CSS file refers back here via var(--name) — same pattern as
+   ui-text-sizes.css's 3-tier scale. Nothing outside this file should ever
+   contain a literal color value.
+
+   Three sections, in both the dark and light blocks below:
+
+   CORE      the actual palette — every literal color value in the app
+             lives here and nowhere else. 10 colors.
+   UI        app chrome (panels, nav, buttons, directory tree, calendar,
+             action row) — built entirely from CORE, no literals of its
+             own. This is what you retune to reshape "how the app looks".
+   MARKDOWN  syntax highlighting + links/tags/calendar-dot colors, drawn
+             from a wider 8-swatch Catppuccin set — deliberately more
+             colors than CORE, because bold/italic/strikethrough/
+             underline/headings/quotes/lists/links/images need to stay
+             visually distinct from each other in rendered notes. If you
+             ever want to shrink this too, collapsing it down to just
+             --accent + --text-color is the next lever to pull — it'll
+             just mean markdown elements stop being color-coded.
+
+   Both theme blocks list the exact same three sections in the exact same
+   order — cross-reference a value between dark/light by scanning to the
+   same spot in the other block. That symmetry is what makes matching up
+   light mode's colors next straightforward. */
+
+:root,
+[data-theme='dark'] {
+  /* ================= CORE ================= */
+  --text-color: #cdd6f4; /* all body text, labels, titles — one tone */
+  --bg-primary: #1e1e2e;   /* app base background + raised surfaces (cards, buttons, popups) */
+  --bg-secondary: #11111b; /* sidebar panels + the note/diary canvas */
+  --bg-hover: #313244;      /* row/item background on hover */
+  --accent: #7c6aef;                 /* brand/interactive purple */
+  --accent-hover: #8f7ff5;             /* brand/interactive purple */
+  --accent-hover: #bba6f7;           /* --accent on hover */
+  --accent-muted: color-mix(in srgb, var(--accent) 15%, transparent); /* low-opacity accent fill */
+  --danger: #f38ba8;  /* destructive actions, error text, markdown strikethrough */
+  --success: #a6e3a1; /* save/sync confirmations, pressed/active rows, diary calendar dot, markdown inline code */
+
+  /* ================= UI ================= */
+  --canvas-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+
+  --nav-primary-bg: transparent;
+  --nav-primary-text: var(--text-color);
+  --nav-active-bg: var(--accent-muted);
+  --nav-active-text: var(--accent);
+
+  --dir-primary-bg: transparent;
+  --dir-primary-text: var(--text-color);
+  --dir-active-bg: var(--accent-muted);
+  --dir-active-text: var(--accent);
+  --dir-parent-active-bg: color-mix(in srgb, var(--dir-active-bg) 55%, var(--bg-hover) 45%);
+
+  --button-bg: var(--bg-primary);
+  --button-hover: var(--bg-hover);
+  --button-active: var(--success);
+
+  --cal-today: var(--success);
+  --cal-today-muted: color-mix(in srgb, var(--cal-today) 15%, transparent);
+
+  /* ================= MARKDOWN ================= */
+  /* Catppuccin Mocha — each swatch maps to one markdown element type so
+     they stay visually distinguishable at a glance. */
+  --ctp-mauve: #cba6f7;    /* bold */
+  --ctp-pink: #f5c2e7;     /* italic, tag/link hover */
+  --ctp-peach: #fab387;    /* @mention contacts, headings */
+  --ctp-yellow: #f9e2af;   /* quotes, event calendar dot */
+  --ctp-teal: #94e2d5;     /* lists, link hover */
+  --ctp-blue: #89b4fa;     /* plain links + [[wikilinks]] */
+  --ctp-sapphire: #74c7ec; /* image links */
+  --ctp-flamingo: #f2cdcd; /* underline */
+
+  --link-color: var(--ctp-blue);
+  --link-hover: var(--ctp-teal);
+  --contact-tag-color: var(--ctp-peach);
+  --contact-tag-hover: var(--ctp-pink);
+  --file-tag-bg: var(--accent-muted);
+  --file-tag-color: var(--accent);
+  --cal-diary-dot: var(--success);
+  --cal-event-dot: var(--ctp-yellow);
+}
+
+[data-theme='light'] {
+  /* ================= CORE ================= */
+  --text-color: #4c4f69;
+  --bg-primary: #eff1f5;
+  --bg-secondary: #dce0e8;
+  --bg-hover: #ccd0da;
+  --border: #bcc0cc;
+  --accent: #7c6aef;                 /* brand/interactive purple */
+  --accent-hover: #8f7ff5;
+  --accent-muted: color-mix(in srgb, var(--accent) 15%, transparent);
+  --danger: #d20f39;
+  --success: #40a02b;
+  /* Light-only — used solely by --dir-parent-active-bg below. No dark-mode
+     equivalent needed since dark derives that one via color-mix instead. */
+  --accent-sub: #161143;
+
+  /* ================= UI ================= */
+  --canvas-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
+
+  --nav-primary-bg: transparent;
+  --nav-primary-text: var(--text-color);
+  --nav-active-bg: var(--accent-muted);
+  --nav-active-text: var(--accent);
+
+  --dir-primary-bg: transparent;
+  --dir-primary-text: var(--text-color);
+  --dir-active-bg: var(--accent-muted);
+  --dir-active-text: var(--accent);
+  --dir-parent-active-bg: var(--accent-sub);
+
+  --button-bg: var(--bg-primary);
+  --button-hover: var(--bg-hover);
+  --button-active: var(--success);
+
+  --cal-today: var(--success);
+  --cal-today-muted: color-mix(in srgb, var(--cal-today) 15%, transparent);
+
+  /* ================= MARKDOWN ================= */
+  /* Catppuccin Latte — same 8 roles as dark mode, see above. */
+  --ctp-mauve: #8839ef;
+  --ctp-pink: #ea76cb;
+  --ctp-peach: #fe640b;
+  --ctp-yellow: #df8e1d;
+  --ctp-teal: #179299;
+  --ctp-blue: #1e66f5;
+  --ctp-sapphire: #209fb5;
+  --ctp-flamingo: #dd7878;
+
+  --link-color: var(--ctp-blue);
+  --link-hover: var(--ctp-sapphire);
+  --contact-tag-color: var(--ctp-flamingo);
+  --contact-tag-hover: var(--ctp-pink);
+  --file-tag-bg: var(--accent-muted);
+  --file-tag-color: var(--accent);
+  --cal-diary-dot: var(--success);
+  --cal-event-dot: var(--ctp-yellow);
+}

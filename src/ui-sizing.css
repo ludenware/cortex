@@ -1,0 +1,28 @@
+/* Sizing file — the one place to edit shared button/interactive-element
+   dimensions across the app. Same pattern as ui-colors.css: every value
+   here is a CSS custom property consumed via var(--name) across many
+   components, so a change here applies everywhere that variable is used
+   at once, without needing to hunt through individual component files.
+   Theme-independent (unlike ui-colors.css) — these are the same in both
+   light and dark mode — so there's just one block, not one per theme.
+
+   Button text size lives in ui-text-sizes.css now (--text-main/--text-sub,
+   same as every other piece of text in the app) — this file is shape and
+   spacing only. */
+
+:root {
+  /* ===== BUTTON RADIUS ===== */
+  /* Every button-family element in the app — action row, mode toggle,
+     file browser, zone nav, contacts list, right panel tabs, settings
+     sidebar, markdown toolbar, calendar buttons — reads this one value. */
+  --button-radius: 10px;
+
+  /* ===== SPACING ===== */
+  /* The action row's small gaps — Encrypt→Close→Delete, Go Back→Mode
+     Toggle. Shared so those three pairings always match; see
+     CenterPanel.tsx's EncryptMidpointAnchor for why Encrypt's gap is
+     enforced via a JS-computed clamp rather than a plain CSS `gap` (the
+     button can float in open space when there's room, but must never
+     end up closer than this to Close/Delete once space gets tight). */
+  --gap-sm: 10px;
+}

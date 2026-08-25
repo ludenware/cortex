@@ -24,8 +24,8 @@
 }
 
 .vault-setup-subtitle {
-  color: var(--text-secondary);
-  font-size: 14px;
+  color: var(--text-color);
+  font-size: var(--text-main);
   margin-bottom: 28px;
 }
 
@@ -39,11 +39,11 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-muted);
+  color: var(--text-color);
   margin-bottom: 8px;
 }
 
@@ -54,11 +54,11 @@
   width: 100%;
   padding: 12px 14px;
   margin-bottom: 6px;
-  background: var(--bg-tertiary);
+  background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  font-size: 14px;
-  color: var(--text-primary);
+  font-size: var(--text-main);
+  color: var(--text-color);
   text-align: left;
   transition: all 0.12s;
 }
@@ -75,8 +75,8 @@
 
 .vault-cloud-step h2,
 .vault-name-step h2 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
   margin-bottom: 12px;
 }
 
@@ -84,13 +84,13 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
-  color: var(--text-secondary);
+  font-size: var(--text-main);
+  color: var(--text-color);
   margin-bottom: 16px;
 }
 
 .vault-back-btn:hover {
-  color: var(--text-primary);
+  color: var(--text-color);
 }
 
 .vault-cloud-list {
@@ -100,8 +100,8 @@
 }
 
 .vault-parent-path {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: var(--text-main);
+  color: var(--text-color);
   margin-bottom: 8px;
   word-break: break-all;
 }
@@ -112,8 +112,8 @@
   background: transparent;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  font-size: 14px;
-  color: var(--text-primary);
+  font-size: var(--text-main);
+  color: var(--text-color);
   outline: none;
   margin-bottom: 16px;
 }
@@ -128,7 +128,7 @@
 
 .vault-loading {
   text-align: center;
-  color: var(--text-muted);
-  font-size: 13px;
+  color: var(--text-color);
+  font-size: var(--text-main);
   margin-top: 16px;
 }

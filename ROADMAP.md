@@ -19,15 +19,15 @@ For a snapshot of what's already shipped, see the [Features](README.md#features)
 
 - attachments: function improvement
 
-- settings: menu to be implemented with some basic user preference controls
-
 ---
 
 ## Next
 
 ***Planned, not yet started.***
 
-- Spellcheck for notes and diary entries
+- spellcheck for notes and diary entries
+
+- more settings categories: editor preferences (default save folder, spellcheck toggle once it exists), diary entry templates, a Data & Privacy category (local version history/backup, reveal vault in Finder), keyboard shortcuts reference
 
 ---
 
@@ -53,21 +53,21 @@ For a snapshot of what's already shipped, see the [Features](README.md#features)
 
 ***Landed in the last release or two, kept here briefly for context before rolling off.***
 
-- implemented search feature and command panel for searching through information vault-wide
+**Unreleased (since v0.2.0)**
+- Settings menu — opens in the center panel like notes/contacts/events, with a category sidebar (Appearance, About Cortex) and a consistent action row. Theme is now Light/Dark/System instead of a simple toggle; new Text Size setting (small/medium/large); Export/Reset settings
+- About Cortex moved from a native popup into the Settings menu, with real GitHub/Bluesky/Mastodon links
+- Internal: extracted a portable storage interface (`VaultFS`) as groundwork for an eventual mobile port — no user-facing change, but the desktop app's file I/O is no longer hardwired to Node-only APIs
 
-- added contact tagging to notes and diary
-
-- added wikilinking feature for notes and diary
-
-- added export as PDF feature for notes and diary entries
-
-- added calendar section
-
-- added contacts section
-
-- added diary section
-
-- added notes section
+**v0.2.0**
+- Vault-wide search — persistent search bar + `Cmd/Ctrl+K` command palette across notes, diary, contacts, calendar events, and tags, including matching by tag membership (not just title/content)
+- Calendar events now support tags, and open in the main panel (not a popup) with Read/Edit modes, plus the ability to link — and create on the fly — contacts, notes, and diary entries
+- A consistent action row (Back navigation, Read/Edit toggle, Close/Delete) with matching sizing and alignment across notes, diary, contacts, and calendar events
+- New underline formatting and a reorganized markdown toolbar
+- Contact tagging on notes and diary
+- Wikilinking for notes and diary
+- PDF export for notes and diary entries
+- Vault-selection safety guards to prevent accidental vault nesting
+- App now launches maximized
 
 ---
 

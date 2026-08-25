@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webFrame } from 'electron'
 import type {
   AttachmentEntry,
   CalendarEvent,
@@ -7,9 +7,11 @@ import type {
   CortexAPI,
   CreateEventInput,
   FileEntry,
+  FontWeightLevel,
   SearchResult,
   StorageSection,
   TagIndex,
+  TextSize,
   ThemeMode,
   TreeNode,
   VaultStatus,
@@ -23,9 +25,11 @@ export type {
   CortexAPI,
   CreateEventInput,
   FileEntry,
+  FontWeightLevel,
   SearchResult,
   StorageSection,
   TagIndex,
+  TextSize,
   ThemeMode,
   TreeNode,
   VaultStatus,
@@ -47,6 +51,57 @@ const cortexAPI: CortexAPI = {
   settings: {
     getTheme: (): Promise<ThemeMode> => ipcRenderer.invoke('settings:getTheme'),
     setTheme: (theme: ThemeMode): Promise<void> => ipcRenderer.invoke('settings:setTheme', theme),
+    getTextSize: (): Promise<TextSize> => ipcRenderer.invoke('settings:getTextSize'),
+    setTextSize: (size: TextSize): Promise<void> => ipcRenderer.invoke('settings:setTextSize', size),
+    getUIFont: (): Promise<string> => ipcRenderer.invoke('settings:getUIFont'),
+    setUIFont: (fontId: string): Promise<void> => ipcRenderer.invoke('settings:setUIFont', fontId),
+    getUIFontWeight: (): Promise<FontWeightLevel> => ipcRenderer.invoke('settings:getUIFontWeight'),
+    setUIFontWeight: (weightId: FontWeightLevel): Promise<void> =>
+      ipcRenderer.invoke('settings:setUIFontWeight', weightId),
+    getComposeFont: (): Promise<string> => ipcRenderer.invoke('settings:getComposeFont'),
+    setComposeFont: (fontId: string): Promise<void> => ipcRenderer.invoke('settings:setComposeFont', fontId),
+    getComposeFontWeight: (): Promise<FontWeightLevel> => ipcRenderer.invoke('settings:getComposeFontWeight'),
+    setComposeFontWeight: (weightId: FontWeightLevel): Promise<void> =>
+      ipcRenderer.invoke('settings:setComposeFontWeight', weightId),
+    exportSettings: (defaultName: string): Promise<string | null> =>
+      ipcRenderer.invoke('settings:export', defaultName),
+    resetSettings: (): Promise<void> => ipcRenderer.invoke('settings:reset'),
+  },
+  menu: {
+    onOpenSettings: (callback: (category?: string) => void): (() => void) => {
+      const listener = (_: unknown, category?: string) => callback(category)
+      ipcRenderer.on('settings:open', listener)
+      return () => ipcRenderer.removeListener('settings:open', listener)
+    },
+    onOpenEncryptedFile: (callback: () => void): (() => void) => {
+      const listener = () => callback()
+      ipcRenderer.on('menu:openEncryptedFile', listener)
+      return () => ipcRenderer.removeListener('menu:openEncryptedFile', listener)
+    },
+  },
+  encryption: {
+    read: (relativePath: string, password: string): Promise<string> =>
+      ipcRenderer.invoke('encryption:read', relativePath, password),
+    write: (relativePath: string, content: string, password: string): Promise<void> =>
+      ipcRenderer.invoke('encryption:write', relativePath, content, password),
+    encrypt: (relativePath: string, password: string): Promise<string> =>
+      ipcRenderer.invoke('encryption:encrypt', relativePath, password),
+    decrypt: (relativePath: string, password: string): Promise<string> =>
+      ipcRenderer.invoke('encryption:decrypt', relativePath, password),
+    pickExternalFile: (): Promise<{ path: string; name: string } | null> =>
+      ipcRenderer.invoke('encryption:pickExternalFile'),
+    decryptExternalFile: (absolutePath: string, password: string): Promise<{ content: string; name: string }> =>
+      ipcRenderer.invoke('encryption:decryptExternalFile', absolutePath, password),
+    saveDecryptedCopy: (defaultName: string, content: string): Promise<string | null> =>
+      ipcRenderer.invoke('encryption:saveDecryptedCopy', defaultName, content),
+  },
+  app: {
+    getVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
+  },
+  window: {
+    setZoomFactor: (factor: number): void => {
+      webFrame.setZoomFactor(factor)
+    },
   },
   storage: {
     getDataPath: (): Promise<string> => ipcRenderer.invoke('storage:getDataPath'),

@@ -1,13 +1,11 @@
-import { StickyNote, BookOpen, Users, Sun, Moon, FolderOpen, FolderX } from 'lucide-react'
+import { StickyNote, BookOpen, Users, Settings, FolderOpen, FolderX, X } from 'lucide-react'
 import { VAULT_FOLDERS } from '@cortex/core'
 import FileBrowser from './FileBrowser'
 import ContactsList from './ContactsList'
-import TagLegend from './TagLegend'
 import AppLogo from './AppLogo'
 import SearchBar from './SearchBar'
-import { useTheme } from '../context/ThemeContext'
 import type { AppZone, Contact, SearchResult } from '../types'
-import './LeftPanel.css'
+import '../styles/left-panel.css'
 
 interface LeftPanelProps {
   zone: AppZone
@@ -26,6 +24,7 @@ interface LeftPanelProps {
   vaultName: string | null
   onCloseVault: () => void
   onSearchResultSelect: (result: SearchResult) => void
+  onOpenSettings: () => void
 }
 
 const ZONES: { id: AppZone; label: string; icon: typeof StickyNote }[] = [
@@ -51,9 +50,8 @@ export default function LeftPanel({
   vaultName,
   onCloseVault,
   onSearchResultSelect,
+  onOpenSettings,
 }: LeftPanelProps) {
-  const { theme, toggleTheme } = useTheme()
-
   return (
     <aside className="left-panel">
       <div className="left-panel-header">
@@ -61,8 +59,8 @@ export default function LeftPanel({
           <AppLogo variant="mark" size="md" />
           <span className="app-logo-label">Cortex</span>
         </div>
-        <button className="theme-toggle" onClick={toggleTheme} title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}>
-          {theme === 'dark' ? <Sun size={16} /> : <Moon size={16} />}
+        <button className="settings-button" onClick={onOpenSettings} title="Settings">
+          <Settings size={18} />
         </button>
       </div>
 
@@ -77,12 +75,21 @@ export default function LeftPanel({
               className={`zone-tab ${zone === id ? 'active' : ''}`}
               onClick={() => onZoneChange(id)}
             >
-              <Icon size={15} />
+              <Icon size={16} />
               {label}
             </button>
           ))}
         </div>
       </div>
+
+      {activeTag && (
+        <div className="active-tag-banner">
+          <span>Filtering by <strong>#{activeTag}</strong></span>
+          <button onClick={() => onTagSelect(null)} title="Clear tag filter">
+            <X size={16} />
+          </button>
+        </div>
+      )}
 
       <div className="browser-zone">
         {zone === 'contacts' ? (
@@ -110,15 +117,13 @@ export default function LeftPanel({
         )}
       </div>
 
-      <TagLegend activeTag={activeTag} onTagSelect={onTagSelect} refreshKey={refreshKey} />
-
       <div className="vault-footer">
         <div className="vault-footer-info">
-          <FolderOpen size={14} className="vault-footer-icon" />
+          <FolderOpen size={16} className="vault-footer-icon" />
           <span className="vault-footer-name">{vaultName ?? 'Vault'}</span>
         </div>
         <button className="vault-action-btn" onClick={onCloseVault} title="Close vault">
-          <FolderX size={13} />
+          <FolderX size={16} />
           Close vault
         </button>
       </div>

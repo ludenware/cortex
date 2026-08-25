@@ -3,8 +3,8 @@
 }
 
 .confirm-message {
-  color: var(--text-secondary);
-  font-size: 14px;
+  color: var(--text-color);
+  font-size: var(--text-main);
   line-height: 1.5;
   margin-bottom: 4px;
 }
@@ -14,8 +14,8 @@
   color: #fff;
   padding: 8px 16px;
   border-radius: var(--radius);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight);
 }
 
 .btn-danger:hover {

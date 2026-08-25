@@ -1,0 +1,64 @@
+/* Interactive-element map — not a stylesheet with rules of its own (that
+   would create duplicate/conflicting declarations against the real ones),
+   just an index of every button/interactive-element class, grouped by
+   where it appears, so "where do I edit the look of X" has one place to
+   check first. The actual CSS lives in the file named next to each class;
+   colors come from ui-colors.css's variables (PANELS/BUTTONS/DIRECTORY/
+   etc.), button shape from ui-sizing.css (--button-radius), text size
+   from ui-text-sizes.css (--text-title/--text-main/--text-sub).
+
+   Zone files (styles/*.css) hold *all* of a UI zone's CSS, merged from
+   what used to be one-file-per-component — see the CSS-restructure plan
+   for why.
+
+   ================= BUTTONS =================
+
+   -- Action row (styles/center-panel.css — the bar above a note/diary/
+      contact/event/settings page, including the Read/Edit mode toggle,
+      previously split across two files, the example that started this
+      restructure) --
+   .action-btn              styles/center-panel.css   Close/Encrypt/Delete/
+                                               Back — reads --button-bg/
+                                               --button-hover/--button-active
+                                               (ui-colors.css)
+   .action-btn.danger       styles/center-panel.css   Delete-style variant —
+                                               its own --danger-based look,
+                                               not --button-*
+   .mode-toggle-segment     styles/center-panel.css   Read/Edit segmented
+                                               toggle — same row as .action-btn
+
+   -- Left panel (styles/left-panel.css) --
+   .zone-tab                styles/left-panel.css   Notes / Diary / Contacts
+                                               nav — reads --nav-* (ui-colors.css)
+   .settings-button         styles/left-panel.css   Gear icon (opens Settings)
+   .fb-action-btn           styles/left-panel.css   "+ Note / + Folder / + File"
+                                               and diary Yesterday/Today/Tomorrow
+                                               — reads --button-* (ui-colors.css),
+                                               same family as .action-btn above
+   .tree-item                styles/left-panel.css  Individual file/folder row —
+                                               reads --dir-* (ui-colors.css)
+   .contact-item              styles/left-panel.css  Contacts list row
+
+   -- Right panel (styles/right-panel.css) --
+   .right-panel-tab          styles/right-panel.css   Calendar / Links toggle
+   .cal-day                  styles/right-panel.css   Calendar grid day cell
+   .cal-diary-entry          styles/right-panel.css   Diary-entry pill under a day
+   .cal-event-contact-link   styles/right-panel.css   Contact name inside an
+                                                event card's "with" line —
+                                                reads --contact-tag-* (ui-colors.css)
+   .links-item                styles/right-panel.css  Backlink/outgoing-link row
+
+   -- Markdown toolbar (styles/center-panel.css) --
+   .md-toolbar-btn            styles/center-panel.css  Bold/Italic/etc. — icon
+                                               only, no font-size
+
+   ================= OTHER INTERACTIVE TEXT =================
+   (all in styles/center-panel.css)
+
+   .wiki-link / .cm-lp-wiki    Read-mode + edit-mode [[wikilinks]] —
+                                reads --link-* (ui-colors.css)
+   .contact-mention-link / .cm-lp-contact
+                                Read-mode + edit-mode @mentions —
+                                reads --contact-tag-* (ui-colors.css)
+   .note-tag-chip               #tag chips — reads --file-tag-* (ui-colors.css)
+*/

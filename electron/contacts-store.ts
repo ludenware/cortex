@@ -1,17 +1,15 @@
 import type { Contact } from '@cortex/core'
 import { VAULT_FOLDERS, withFileTypeLine, stripFileTypeLine } from '@cortex/core'
-import fs from 'fs/promises'
-import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { buildFrontmatter, parseFrontmatter, sanitizeFileName } from './markdown-files'
-import { getDataPath } from './storage'
+import { vaultFs } from './node-vault-fs'
 
 function contactsDir(): string {
-  return path.join(getDataPath(), VAULT_FOLDERS.CONTACTS)
+  return VAULT_FOLDERS.CONTACTS
 }
 
 function contactFilePath(id: string, name: string): string {
-  return path.join(contactsDir(), `${sanitizeFileName(name)}-${id.slice(0, 8)}.md`)
+  return `${contactsDir()}/${sanitizeFileName(name)}-${id.slice(0, 8)}.md`
 }
 
 function isPresentContactField(value: string | undefined): value is string {
@@ -38,7 +36,7 @@ export function parseContactFile(raw: string): Contact | null {
 }
 
 async function writeContactFile(contact: Contact, existingPath?: string): Promise<string> {
-  await fs.mkdir(contactsDir(), { recursive: true })
+  await vaultFs.mkdir(contactsDir())
   const filePath = existingPath ?? contactFilePath(contact.id, contact.name)
   const content = withFileTypeLine(
     'contact',
@@ -56,21 +54,21 @@ async function writeContactFile(contact: Contact, existingPath?: string): Promis
       contact.notes ?? ''
     )
   )
-  await fs.writeFile(filePath, content, 'utf-8')
+  await vaultFs.writeFile(filePath, content)
   return filePath
 }
 
 async function findContactFile(id: string): Promise<string | null> {
   let entries
   try {
-    entries = await fs.readdir(contactsDir())
+    entries = await vaultFs.readdir(contactsDir())
   } catch {
     return null
   }
-  for (const name of entries) {
-    if (!name.endsWith('.md')) continue
-    const filePath = path.join(contactsDir(), name)
-    const raw = await fs.readFile(filePath, 'utf-8')
+  for (const entry of entries) {
+    if (entry.isDirectory || !entry.name.endsWith('.md')) continue
+    const filePath = `${contactsDir()}/${entry.name}`
+    const raw = await vaultFs.readFile(filePath)
     const contact = parseContactFile(raw)
     if (contact?.id === id) return filePath
   }
@@ -78,17 +76,17 @@ async function findContactFile(id: string): Promise<string | null> {
 }
 
 export async function listContacts(): Promise<Contact[]> {
-  let entries: string[]
+  let entries
   try {
-    entries = await fs.readdir(contactsDir())
+    entries = await vaultFs.readdir(contactsDir())
   } catch {
     return []
   }
 
   const contacts: Contact[] = []
-  for (const name of entries) {
-    if (!name.endsWith('.md')) continue
-    const raw = await fs.readFile(path.join(contactsDir(), name), 'utf-8')
+  for (const entry of entries) {
+    if (entry.isDirectory || !entry.name.endsWith('.md')) continue
+    const raw = await vaultFs.readFile(`${contactsDir()}/${entry.name}`)
     const contact = parseContactFile(raw)
     if (contact) contacts.push(contact)
   }
@@ -117,7 +115,7 @@ export async function updateContact(
   const filePath = await findContactFile(id)
   if (!filePath) return null
 
-  const raw = await fs.readFile(filePath, 'utf-8')
+  const raw = await vaultFs.readFile(filePath)
   const existing = parseContactFile(raw)
   if (!existing) return null
 
@@ -128,7 +126,7 @@ export async function updateContact(
   }
 
   if (updates.name && updates.name !== existing.name) {
-    await fs.unlink(filePath)
+    await vaultFs.remove(filePath)
     await writeContactFile(updated)
   } else {
     await writeContactFile(updated, filePath)
@@ -139,13 +137,13 @@ export async function updateContact(
 export async function deleteContact(id: string): Promise<boolean> {
   const filePath = await findContactFile(id)
   if (!filePath) return false
-  await fs.unlink(filePath)
+  await vaultFs.remove(filePath)
   return true
 }
 
 export async function getContactByRelativePath(relativePath: string): Promise<Contact | null> {
   try {
-    const raw = await fs.readFile(path.join(getDataPath(), relativePath), 'utf-8')
+    const raw = await vaultFs.readFile(relativePath)
     return parseContactFile(raw)
   } catch {
     return null

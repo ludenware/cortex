@@ -32,7 +32,7 @@ import {
 } from '../codemirror/contact-autocomplete'
 import WikiLinkPopup, { buildWikiLinkOptions } from './WikiLinkPopup'
 import ContactMentionPopup, { filterContactOptions, type ContactOption } from './ContactMentionPopup'
-import '../codemirror/live-preview.css'
+import '../styles/center-panel.css'
 import { useTheme } from '../context/ThemeContext'
 
 export interface MarkdownEditorHandle {
@@ -185,7 +185,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
         EditorView.theme({
           '&': {
             backgroundColor: 'transparent !important',
-            color: 'var(--text-primary)',
+            color: 'var(--text-color)',
             height: '100%',
           },
           '.cm-scroller': {
@@ -205,7 +205,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
           },
           '.cm-gutters': {
             backgroundColor: 'transparent !important',
-            color: 'var(--text-muted)',
+            color: 'var(--text-color)',
             border: 'none',
           },
           '.cm-gutter': {
@@ -218,7 +218,7 @@ const MarkdownEditor = forwardRef<MarkdownEditorHandle, MarkdownEditorProps>(
             backgroundColor: 'transparent',
           },
           '.cm-line': {
-            color: 'var(--text-primary)',
+            color: 'var(--text-color)',
           },
         }),
       [theme]

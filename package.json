@@ -1,6 +1,6 @@
 {
   "name": "cortex",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Open-source cross-platform note-taking app with calendar, diary, contacts, and tags",
   "private": true,
   "workspaces": [
@@ -8,13 +8,14 @@
   ],
   "main": "dist-electron/main.js",
   "author": {
-    "name": "ominatsune",
-    "email": "ominatsune@proton.me"
+    "name": "graeme k. (rgk6) [ludenware]",
+    "email": "ludenware@proton.me",
+    "url": "https://github.com/ludenware"
   },
   "license": "MIT",
   "scripts": {
     "dev": "env -u ELECTRON_RUN_AS_NODE vite",
-    "build": "tsc && vite build",
+    "build": "tsc -p packages/core && tsc && vite build",
     "preview": "vite preview",
     "package": "npm run build && electron-builder",
     "package:mac": "npm run build && electron-builder --mac",
@@ -64,17 +65,36 @@
       "category": "public.app-category.productivity",
       "target": [
         "dmg"
+      ],
+      "identity": "-",
+      "extraResources": [
+        {
+          "from": "resources/qpdf/mac",
+          "to": "qpdf/mac"
+        }
       ]
     },
     "win": {
       "target": [
         "nsis"
+      ],
+      "extraResources": [
+        {
+          "from": "resources/qpdf/win",
+          "to": "qpdf/win"
+        }
       ]
     },
     "linux": {
       "target": [
         "AppImage",
         "deb"
+      ],
+      "extraResources": [
+        {
+          "from": "resources/qpdf/linux",
+          "to": "qpdf/linux"
+        }
       ]
     },
     "files": [

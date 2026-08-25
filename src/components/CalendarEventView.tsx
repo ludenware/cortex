@@ -9,7 +9,7 @@ import ActionRow from './ActionRow'
 import ActionButton from './ActionButton'
 import ModeToggle from './ModeToggle'
 import TagsPopup from './TagsPopup'
-import './CalendarEventView.css'
+import '../styles/center-panel.css'
 
 interface NoteOption {
   name: string
@@ -171,7 +171,7 @@ export default function CalendarEventView({
         }
       />
 
-      <div className="event-view-outer">
+      <div className="event-view-outer note-canvas">
       <div className="event-view-body">
         <h1 className="event-view-title">{event.title}</h1>
         <div className="event-view-time">
@@ -224,16 +224,16 @@ export default function CalendarEventView({
         />
 
         <div className="event-link-section">
-          <h3 className="event-link-title"><Hash size={13} /> Tags</h3>
+          <h3 className="event-link-title"><Hash size={16} /> Tags</h3>
           <div className="event-link-chips">
             {eventTags.map((tag) => (
-              <span key={tag} className="event-link-chip static">#{tag}</span>
+              <span key={tag} className="event-link-chip tag">#{tag}</span>
             ))}
             {eventTags.length === 0 && <span className="event-link-empty">No tags</span>}
           </div>
           {mode === 'edit' && (
             <button type="button" className="toolbar-btn event-link-manage-tags" onClick={() => setShowTagsPopup(true)}>
-              <Hash size={13} /> Manage tags
+              <Hash size={16} /> Manage tags
             </button>
           )}
         </div>

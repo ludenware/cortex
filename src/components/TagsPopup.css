@@ -21,22 +21,22 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
   margin-bottom: 12px;
-  color: var(--text-primary);
+  color: var(--text-color);
 }
 
 .tags-popup-close {
   margin-left: auto;
-  color: var(--text-muted);
+  color: var(--text-color);
   padding: 4px;
   border-radius: 4px;
 }
 
 .tags-popup-close:hover {
   background: var(--bg-hover);
-  color: var(--text-primary);
+  color: var(--text-color);
 }
 
 .tags-popup-chips {
@@ -55,8 +55,8 @@
   background: var(--accent-muted);
   color: var(--accent);
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight);
 }
 
 .tags-popup-chip button {
@@ -70,8 +70,8 @@
 }
 
 .tags-popup-empty {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: var(--text-main);
+  color: var(--text-color);
 }
 
 .tags-popup-input-row {
@@ -86,9 +86,9 @@
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--text-main);
   outline: none;
-  color: var(--text-primary);
+  color: var(--text-color);
 }
 
 .tags-popup-input-row input:focus {
@@ -102,16 +102,16 @@
   width: 32px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  color: var(--text-secondary);
+  color: var(--text-color);
 }
 
 .tags-popup-add:hover:not(:disabled) {
   background: var(--bg-hover);
-  color: var(--text-primary);
+  color: var(--text-color);
 }
 
 .tags-popup-save {
   width: 100%;
   padding: 8px;
-  font-size: 13px;
+  font-size: var(--text-main);
 }

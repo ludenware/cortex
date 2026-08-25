@@ -8,6 +8,10 @@ export interface TreeNode {
   type: 'file' | 'folder'
   modified?: string
   children?: TreeNode[]
+  /** True for a `name.ext.enc` file — encrypted via the optional per-file
+   *  encryption feature. Set from the filename alone, no content read
+   *  needed (see electron/crypto-envelope.ts's isEncryptedPath). */
+  encrypted?: boolean
 }
 
 export interface FileEntry {

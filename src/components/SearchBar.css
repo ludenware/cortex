@@ -16,7 +16,7 @@
 
 .search-bar-icon {
   flex-shrink: 0;
-  color: var(--text-muted);
+  color: var(--text-color);
 }
 
 .search-bar-clear {
@@ -27,18 +27,18 @@
   width: 18px;
   height: 18px;
   border-radius: 5px;
-  color: var(--text-muted);
+  color: var(--text-color);
 }
 
 .search-bar-clear:hover {
   background: var(--bg-hover);
-  color: var(--text-primary);
+  color: var(--text-color);
 }
 
 .search-bar-input-row input {
   flex: 1;
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--text-main);
   border: none;
   outline: none;
   background: transparent;
@@ -66,11 +66,11 @@
 }
 
 .search-bar-group-label {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-muted);
+  color: var(--text-color);
   padding: 4px 8px 2px;
 }
 
@@ -81,9 +81,9 @@
   width: 100%;
   padding: 6px 8px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--text-main);
   text-align: left;
-  color: var(--text-primary);
+  color: var(--text-color);
 }
 
 .search-bar-item:hover,
@@ -95,7 +95,7 @@
 .search-bar-item-icon {
   flex-shrink: 0;
   margin-top: 1px;
-  color: var(--text-muted);
+  color: var(--text-color);
 }
 
 .search-bar-item-text {
@@ -113,8 +113,8 @@
 }
 
 .search-bar-item-subtitle {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: var(--text-main);
+  color: var(--text-color);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -122,6 +122,6 @@
 
 .search-bar-empty {
   padding: 10px 12px;
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: var(--text-main);
+  color: var(--text-color);
 }

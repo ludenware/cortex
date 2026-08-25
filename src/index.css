@@ -1,3 +1,8 @@
+@import './ui-colors.css';
+@import './ui-sizing.css';
+@import './ui-text-sizes.css';
+@import './ui-elements.css';
+
 *,
 *::before,
 *::after {
@@ -8,77 +13,29 @@
 
 :root,
 [data-theme='dark'] {
-  --bg-primary: #1a1a1f;
-  --bg-secondary: #222228;
-  --bg-tertiary: #2a2a32;
-  --bg-hover: #32323c;
-  --bg-active: #3d3d4a;
-  --border: #3a3a44;
-  --text-primary: #f5f5f7;
-  --text-secondary: #9898a6;
-  --text-muted: #6b6b78;
-  --accent: #7c6aef;
-  --accent-hover: #8f7ff5;
-  --accent-muted: rgba(124, 106, 239, 0.15);
-  --danger: #ef4444;
-  --success: #22c55e;
-  --editor-bg: transparent;
-  --canvas-bg: #252530;
-  --canvas-border: #3a3a48;
-  --canvas-shadow: 0 4px 24px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  /* All color variables live in ui-colors.css — that's the one file to
+     edit for any color/contrast change app-wide. Only non-color layout/
+     sizing/typography tokens stay here. */
   --left-panel-width: 260px;
   --right-panel-width: 300px;
   --toolbar-height: 48px;
   /* Uniform width for every action-row button (Back, mode-toggle segments,
      Close, Delete) — wide enough for the longest label ("CONTACT"/"DELETE")
      across all four modes, so no button reads as bigger or smaller. */
-  --action-cell-width: 76px;
+  --action-cell-width: 85px;
   --radius: 8px;
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --font-mono: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
-  /* Catppuccin Mocha */
-  --ctp-mauve: #cba6f7;
-  --ctp-pink: #f5c2e7;
-  --ctp-red: #f38ba8;
-  --ctp-green: #a6e3a1;
-  --ctp-peach: #fab387;
-  --ctp-yellow: #f9e2af;
-  --ctp-teal: #94e2d5;
-  --ctp-blue: #89b4fa;
-  --ctp-sapphire: #74c7ec;
-  --ctp-flamingo: #f2cdcd;
-}
 
-[data-theme='light'] {
-  --bg-primary: #f5f5f7;
-  --bg-secondary: #ffffff;
-  --bg-tertiary: #ebebef;
-  --bg-hover: #e0e0e8;
-  --bg-active: #d4d4de;
-  --border: #d1d1d9;
-  --text-primary: #1a1a1f;
-  --text-secondary: #4a4a56;
-  --text-muted: #7a7a88;
-  --accent: #6b5ce7;
-  --accent-hover: #5a4bd6;
-  --accent-muted: rgba(107, 92, 231, 0.12);
-  --danger: #dc2626;
-  --success: #16a34a;
-  --editor-bg: transparent;
-  --canvas-bg: #ffffff;
-  --canvas-border: #d8d8e0;
-  --canvas-shadow: 0 4px 24px rgba(0, 0, 0, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  /* Catppuccin Latte */
-  --ctp-mauve: #8839ef;
-  --ctp-pink: #ea76cb;
-  --ctp-red: #d20f39;
-  --ctp-green: #40a02b;
-  --ctp-peach: #fe640b;
-  --ctp-yellow: #df8e1d;
-  --ctp-teal: #179299;
-  --ctp-blue: #1e66f5;
-  --ctp-sapphire: #209fb5;
-  --ctp-flamingo: #dd7878;
+  /* --ui-font-weight itself is set at runtime by FontContext.tsx (Settings
+     > Appearance > UI Font Strength — Thin/Medium/Strong, 100/400/700),
+     with a 400 fallback for before it's mounted. This derives a bolder
+     tier from whatever that current value is, so headings/active-state
+     text stay visibly heavier than regular labels at every strength
+     setting instead of the two collapsing into the same weight — see
+     `body` below and every UI-chrome font-weight across the app, which
+     now reads one of these two instead of a hardcoded number. */
+  --ui-font-weight-strong: calc(var(--ui-font-weight, 400) + 300);
 }
 
 html,
@@ -88,15 +45,36 @@ body,
   overflow: hidden;
 }
 
+/* Text Size scales the whole rendered UI via Chromium's *native* content
+   zoom (`webFrame.setZoomFactor`, driven from TextSizeContext.tsx — the
+   same mechanism as Cmd/Ctrl+=/-), NOT the CSS `zoom` property. Two earlier
+   attempts using CSS `zoom` on <html> both failed in opposite ways: with no
+   height compensation, the composited app was literally smaller/larger
+   than the window (a gap below at zoom<1, content clipped at zoom>1);
+   compensating <html>'s height to force an exact fit instead distorted
+   internal proportions (flexible content areas ended up *larger* at small
+   text size and *smaller* at large — backwards from expectations), because
+   CSS `zoom` only rescales a subtree's composited pixels without touching
+   `window.innerHeight`/`vh`/`%` resolution, so layout math and final
+   rendering disagree. Native zoom rescales the renderer's whole effective
+   viewport instead — `vh`, `%`, and `window.innerHeight` all move together
+   consistently — so the UI fills the window exactly and proportions stay
+   correct at every size, matching how zoom behaves in every other
+   Electron/Chromium app. The `data-text-size` attribute is still set (see
+   TextSizeContext.tsx) in case any component needs it for non-scaling
+   purposes, but no CSS here keys off it for sizing anymore. */
+
 body {
-  font-family: var(--font-sans);
+  font-family: var(--ui-font-family, var(--font-sans));
+  font-weight: var(--ui-font-weight, 400);
   background: var(--bg-primary);
-  color: var(--text-primary);
+  color: var(--text-color);
   -webkit-font-smoothing: antialiased;
 }
 
 button {
   font-family: inherit;
+  font-weight: inherit;
   cursor: pointer;
   border: none;
   background: none;
@@ -107,13 +85,14 @@ input,
 textarea,
 select {
   font-family: inherit;
-  color: var(--text-primary);
+  font-weight: inherit;
+  color: var(--text-color);
   background: transparent;
 }
 
 input::placeholder,
 textarea::placeholder {
-  color: var(--text-muted);
+  color: var(--text-color);
 }
 
 ::-webkit-scrollbar {
@@ -131,7 +110,15 @@ textarea::placeholder {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--text-muted);
+  background: var(--text-color);
+}
+
+/* Without this, Chromium renders an unstyled white square wherever a
+   vertical and horizontal scrollbar meet (e.g. the file tree, which
+   scrolls both ways) — visible regardless of theme since it ignores every
+   other scrollbar rule above. */
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 /* CodeMirror — remove default white background */
@@ -150,9 +137,9 @@ textarea::placeholder {
 
 .form-group label {
   display: block;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--text-secondary);
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight);
+  color: var(--text-color);
   margin-bottom: 4px;
 }
 
@@ -160,15 +147,16 @@ textarea::placeholder {
 .form-group textarea {
   width: 100%;
   padding: 8px 12px;
-  background: transparent;
+  background: var(--bg-primary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  font-size: 14px;
+  font-size: var(--text-main);
   outline: none;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
+  background: var(--bg-hover);
   border-color: var(--accent);
 }
 
@@ -225,8 +213,8 @@ input[type='date']::-webkit-calendar-picker-indicator:hover {
 .btn {
   padding: 8px 16px;
   border-radius: var(--radius);
-  font-size: 13px;
-  font-weight: 500;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight);
   transition: all 0.12s;
 }
 
@@ -245,8 +233,8 @@ input[type='date']::-webkit-calendar-picker-indicator:hover {
 }
 
 .btn-secondary {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
+  background: var(--bg-primary);
+  color: var(--text-color);
   border: 1px solid var(--border);
 }
 
@@ -275,8 +263,8 @@ input[type='date']::-webkit-calendar-picker-indicator:hover {
 }
 
 .modal h2 {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
   margin-bottom: 16px;
 }
 
@@ -294,7 +282,7 @@ input[type='date']::-webkit-calendar-picker-indicator:hover {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  color: var(--text-muted);
+  color: var(--text-color);
 }
 
 .empty-state-logo {
@@ -309,12 +297,12 @@ input[type='date']::-webkit-calendar-picker-indicator:hover {
   background: rgba(239, 68, 68, 0.15);
   border-bottom: 1px solid var(--danger);
   color: var(--danger);
-  font-size: 13px;
+  font-size: var(--text-main);
 }
 
 .error-banner button {
   color: var(--danger);
-  font-size: 12px;
+  font-size: var(--text-main);
   text-decoration: underline;
 }
 
@@ -323,16 +311,16 @@ input[type='date']::-webkit-calendar-picker-indicator:hover {
   align-items: center;
   gap: 4px;
   padding: 5px 10px;
-  border-radius: 6px;
-  font-size: 12px;
-  color: var(--text-secondary);
+  border-radius: var(--button-radius);
+  font-size: var(--text-main);
+  color: var(--text-color);
   background: transparent;
   border: 1px solid transparent;
 }
 
 .toolbar-btn:hover {
   background: var(--bg-hover);
-  color: var(--text-primary);
+  color: var(--text-color);
 }
 
 .toolbar-btn.active {

@@ -1,0 +1,568 @@
+/* Right panel — the whole right sidebar: outer shell + Calendar/Links tab
+   switcher, the calendar (grid, day cells, event list, event-creation
+   form), and the backlinks/outgoing-links panel. One file because these
+   were previously split across RightPanel.css/CalendarPanel.css/
+   LinksPanel.css with no single place to look for "the right panel's"
+   styling — see the CSS-restructure plan for why. Colors come from
+   ui-colors.css; button shape from ui-sizing.css (--button-radius); text
+   size from ui-text-sizes.css (--text-main/--text-sub). */
+
+/* ===== PANEL SHELL + TAB SWITCHER ===== */
+
+.right-panel {
+  width: var(--right-panel-width);
+  background: var(--bg-secondary);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.right-panel-nav {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  padding: 48px 10px 10px;
+  border-bottom: 1px solid var(--border);
+  -webkit-app-region: no-drag;
+}
+
+.right-panel-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 6px 6px;
+  border-radius: var(--button-radius);
+  border: 1px solid var(--border);
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-color);
+  background: var(--bg-primary);
+  transition: background 0.12s, color 0.12s;
+  min-width: 0;
+}
+
+.right-panel-tab:hover {
+  background: var(--bg-hover);
+  color: var(--text-color);
+}
+
+.right-panel-tab.active {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.right-panel-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.right-panel-body > * {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ===== CALENDAR ===== */
+
+.calendar-panel-content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  height: 100%;
+}
+
+.calendar-header {
+  padding: 10px 50px;
+  border-bottom: 1px solid var(--border);
+}
+
+.calendar-nav {
+  display: flex;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.calendar-nav button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--button-radius);
+  color: var(--text-color);
+}
+
+.calendar-nav button:hover {
+  background: var(--bg-hover);
+  color: var(--text-color);
+}
+
+.calendar-month {
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  padding: 0px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.cal-dow {
+  text-align: center;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
+  color: var(--text-color);
+  padding: 5px 5px;
+  border-color: var(--border);
+  background: var(--bg-primary);
+}
+
+.cal-day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5px 5px;
+  border: 1px solid transparent;
+  border-radius: var(--button-radius);
+  min-height: 36px;
+  font-size: var(--text-main);
+  color: var(--text-color);
+  transition: all 0.12s;
+}
+
+.cal-day:hover {
+  background: var(--bg-hover);
+}
+
+.cal-day.other-month {
+  opacity: 0.35;
+}
+
+/* Today gets its own border color always (not just when selected — see
+   .cal-day.selected below for the normal highlight, and .today.selected
+   further down for what happens when both apply to the same cell). */
+.cal-day.today {
+  border-color: var(--cal-today);
+}
+
+.cal-day-num {
+  font-size: var(--text-main);
+  border-radius: var(--button-radius);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Today's date number — always --cal-today, bold text (not the full
+   active-day treatment below; today isn't necessarily the selected day). */
+.cal-day.today .cal-day-num {
+  color: var(--cal-today);
+  font-weight: var(--ui-font-weight-strong);
+  padding: 0px 0px;
+}
+
+/* The diary/event dot indicators always read in --cal-today on today's
+   cell too, regardless of selection — same reasoning as the number above. */
+.cal-day.today .cal-diary-dot,
+.cal-day.today .cal-dot {
+  background: var(--cal-today);
+}
+
+.cal-day.selected {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+/* When today is also the selected/active day, keep the whole cell in
+   --cal-today instead of switching to .selected's plain --accent look.
+   Three classes on one selector = higher specificity than either single
+   rule above, so this wins regardless of source order. */
+.cal-day.today.selected {
+  border-color: var(--cal-today);
+  background: var(--cal-today-muted);
+  color: var(--cal-today);
+}
+
+.cal-day-indicators {
+  display: flex;
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  align-items: center;
+  gap: 2px;
+  min-height: 6px;
+}
+
+.cal-diary-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent, #818cf8);
+  opacity: 0.9;
+  flex-shrink: 0;
+}
+
+/* Was reading --accent-border/--accent-muted-hover, neither of which was
+   ever defined in ui-colors.css — var()'s fallback silently won every
+   time, so this pill always rendered a hardcoded indigo regardless of the
+   actual theme's accent color. Fixed to use real, defined variables:
+   --border (single shared border color, per ui-colors.css) and a computed
+   stronger tint of --accent-muted for hover. */
+.cal-diary-entry {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  cursor: default;
+  margin-bottom: 10px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  transition: background 0.15s;
+}
+
+.cal-diary-entry:hover {
+  background: var(--bg-hover);
+}
+
+.cal-diary-label {
+  font-size: var(--text-main);
+  color: var(--text-color);
+  font-weight: var(--ui-font-weight-strong);
+  flex: 1;
+  cursor: pointer;
+}
+
+.cal-diary-label:hover {
+  background: var(--bg-hover);
+}
+
+.cal-diary-delete {
+  position: static;
+  margin-left: auto;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+  color: var(--text-color);
+}
+
+.cal-diary-delete:hover {
+  color: var(--danger);
+}
+
+.cal-diary-entry:hover .cal-diary-delete {
+  opacity: 1;
+}
+
+.cal-diary-add {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 7px 10px;
+  border-radius: var(--button-radius);
+  border: 1px solid var(--border);
+  background: var(--bg-primary);
+  color: var(--text-color);
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
+  margin-bottom: 10px;
+}
+
+.cal-diary-add:hover {
+  background: var(--bg-hover);
+  color: var(--text-color);
+  border-color: var(--border);
+}
+
+.cal-day-dots {
+  display: flex;
+  gap: 2px;
+  margin-top: 2px;
+}
+
+.cal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.calendar-events {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 10px;
+}
+
+.calendar-events-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
+  color: var(--text-color);
+  margin-bottom: 10px;
+}
+
+.cal-add-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--text-main);
+  width: 100px;
+  height: 30px;
+  border: 1px solid var(--border);
+  border-radius: var(--button-radius);
+  background: var(--bg-primary);
+  color: var(--text-color);
+}
+
+.cal-add-btn:hover {
+  background: var(--bg-hover);
+}
+
+.cal-event {
+  position: relative;
+  padding: 10px 10px;
+  background: var(--bg-primary);
+  border-radius: var(--button-radius);
+  margin-bottom: 10px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.cal-event:hover {
+  border-color: var(--bg-hover);
+}
+
+.cal-event-link-count {
+  font-size: var(--text-main);
+  color: var(--link-color);
+  margin-top: 3px;
+  font-weight: var(--ui-font-weight-strong);
+}
+
+.cal-event-focused {
+  border-color: var(--accent);
+  background: var(--accent-muted);
+  color: var(--accent);
+}
+
+.cal-event-title {
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
+}
+
+.cal-event-time {
+  font-size: var(--text-main);
+  color: var(--text-color);
+  font-weight: var(--ui-font-weight-strong);
+  margin-top: 2px;
+}
+
+.cal-event-loc {
+  font-size: var(--text-main);
+  color: var(--text-color);
+  margin-top: 2px;
+}
+
+.cal-event-contacts {
+  font-size: var(--text-main);
+  color: var(--text-color);
+  margin-top: 2px;
+}
+
+.cal-event-contact-link {
+  color: var(--contact-tag-color);
+  font-weight: var(--ui-font-weight-strong);
+  cursor: pointer;
+}
+
+.cal-event-contact-link:hover {
+  color: var(--contact-tag-hover);
+}
+
+.cal-event-tags {
+  font-size: var(--text-main);
+  color: var(--text-color);
+  margin-top: 3px;
+  font-weight: var(--ui-font-weight-strong);
+}
+
+.cal-event-delete {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  opacity: 0;
+  color: var(--text-color);
+  transition: opacity 0.12s;
+}
+
+.cal-event:hover .cal-event-delete {
+  opacity: 1;
+}
+
+.cal-event-delete:hover {
+  color: var(--danger);
+}
+
+.cal-no-events {
+  font-size: var(--text-main);
+  color: var(--text-color);
+  padding: 8px 0;
+}
+
+.event-form-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.event-form-header h2 {
+  margin: 0;
+}
+
+.event-form-date-nav {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight);
+  color: var(--text-color);
+}
+
+.event-form-date-nav button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--button-radius);
+  color: var(--text-color);
+}
+
+.event-form-date-nav button:hover {
+  background: var(--bg-hover);
+  color: var(--text-color);
+}
+
+.event-form-tags-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.event-form-tag-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+  background: var(--accent-muted);
+  color: var(--accent);
+  border-radius: 999px;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight);
+}
+
+.event-form-tag-chip button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: inherit;
+  opacity: 0.7;
+  border-radius: 50%;
+  padding: 2px;
+}
+
+.event-form-tag-chip button:hover {
+  opacity: 1;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* ===== LINKS PANEL (backlinks / outgoing links) ===== */
+
+.links-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 14px 12px;
+  overflow-y: auto;
+}
+
+.links-panel-empty,
+.links-panel-muted {
+  font-size: var(--text-main);
+  color: var(--text-color);
+  padding: 4px 0;
+}
+
+.links-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.links-section-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-color);
+}
+
+.links-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.links-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  font-size: var(--text-main);
+  transition: background 0.12s;
+}
+
+.links-item.resolved {
+  color: var(--link-color);
+}
+
+.links-item.resolved:hover {
+  background: var(--bg-hover);
+}
+
+.links-item.unresolved {
+  color: var(--text-color);
+  font-style: italic;
+  padding: 6px 10px;
+}

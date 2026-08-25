@@ -1,7 +1,7 @@
 import './AppLogo.css'
 
 type AppLogoVariant = 'full' | 'mark'
-type AppLogoSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 'xxxl'
+type AppLogoSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'xxl' | 'xxxl' | 'xxxxl'
 
 const SIZE_PX: Record<AppLogoSize, number> = {
   xs: 16,
@@ -11,6 +11,7 @@ const SIZE_PX: Record<AppLogoSize, number> = {
   xl: 64,
   xxl: 128,
   xxxl: 256,
+  xxxxl: 400,
 }
 
 interface AppLogoProps {

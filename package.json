@@ -1,6 +1,6 @@
 {
   "name": "cortex",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Open-source cross-platform note-taking app with calendar, diary, contacts, and tags",
   "private": true,
   "workspaces": [
@@ -68,7 +68,10 @@
       ],
       "identity": "-",
       "extraResources": [
-        { "from": "resources/qpdf/mac", "to": "qpdf/mac" }
+        {
+          "from": "resources/qpdf/mac",
+          "to": "qpdf/mac"
+        }
       ]
     },
     "win": {
@@ -76,7 +79,10 @@
         "nsis"
       ],
       "extraResources": [
-        { "from": "resources/qpdf/win", "to": "qpdf/win" }
+        {
+          "from": "resources/qpdf/win",
+          "to": "qpdf/win"
+        }
       ]
     },
     "linux": {
@@ -85,7 +91,10 @@
         "deb"
       ],
       "extraResources": [
-        { "from": "resources/qpdf/linux", "to": "qpdf/linux" }
+        {
+          "from": "resources/qpdf/linux",
+          "to": "qpdf/linux"
+        }
       ]
     },
     "files": [

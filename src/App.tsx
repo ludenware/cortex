@@ -5,7 +5,12 @@ import CenterPanel from './components/CenterPanel'
 import RightPanel, { type FeatureZone } from './components/RightPanel'
 import VaultSetup from './components/VaultSetup'
 import SearchPalette from './components/SearchPalette'
+import SettingsView from './components/SettingsView'
+import CreateEventView from './components/CreateEventView'
+import OpenEncryptedFileModal from './components/OpenEncryptedFileModal'
 import { ThemeProvider } from './context/ThemeContext'
+import { TextSizeProvider } from './context/TextSizeContext'
+import { FontProvider } from './context/FontContext'
 import { parseFileType, isDiaryPath, resolveDiaryPath } from '@cortex/core'
 import type { AppZone, CalendarEvent, Contact, SearchResult, VaultStatus } from './types'
 import './App.css'
@@ -28,6 +33,11 @@ export default function App() {
   const [featureZone, setFeatureZone] = useState<FeatureZone>('calendar')
   const [openNoteContent, setOpenNoteContent] = useState('')
   const [showSearchPalette, setShowSearchPalette] = useState(false)
+  const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsCategory, setSettingsCategory] = useState<string | null>(null)
+  const [settingsRequestId, setSettingsRequestId] = useState(0)
+  const [openEncryptedFileModal, setOpenEncryptedFileModal] = useState(false)
+  const [creatingEventDate, setCreatingEventDate] = useState<Date | null>(null)
   const skipFlushRef = useRef(false)
   const selectedPathRef = useRef<string | null>(null)
   const [navHistory, setNavHistory] = useState<string[]>([])
@@ -66,6 +76,7 @@ export default function App() {
       setSelectedEvent(null)
       setFocusedCalendarEvent(null)
       setActiveTag(null)
+      setCreatingEventDate(null)
     } catch {
       handleError('Failed to close vault')
     }
@@ -88,9 +99,11 @@ export default function App() {
     setSelectedName(null)
     setSelectedContact(null)
     setSelectedEvent(null)
+    setFocusedCalendarEvent(null)
     setOpenInEditMode(false)
     setIsNewNote(false)
     setOpenNoteContent('')
+    setCreatingEventDate(null)
   }, [])
 
   const handleGoToVaultRoot = useCallback(() => {
@@ -98,12 +111,16 @@ export default function App() {
     setSelectedPath(null)
     setSelectedName(null)
     setSelectedEvent(null)
+    setFocusedCalendarEvent(null)
     setOpenInEditMode(false)
     setIsNewNote(false)
     setOpenNoteContent('')
+    setCreatingEventDate(null)
   }, [])
 
   const openNoteAtPath = useCallback(async (path: string, name: string, opts?: { isNew?: boolean }) => {
+    setSettingsOpen(false)
+    setCreatingEventDate(null)
     if (!opts?.isNew) {
       try {
         const raw = await window.cortex.storage.readFile(path)
@@ -166,9 +183,33 @@ export default function App() {
     await openNoteAtPath(path, name, opts)
   }, [openNoteAtPath])
 
+  // Left panel's contacts list (both clicking an existing contact and
+  // creating a new one via "+ Contact" route through here) — needs the same
+  // "close whatever else is open" treatment as every other navigation
+  // entry point, otherwise selecting/creating a contact while Settings (or
+  // a note/event) is open just updates selectedContact in the background
+  // without ever navigating there. `contact` is only null for the
+  // delete-cleanup case (ContactsList clearing its own selection after
+  // deleting the active contact), which shouldn't disturb anything else.
+  const handleSelectContact = useCallback((contact: Contact | null) => {
+    if (contact) {
+      setSettingsOpen(false)
+      setNavHistory([])
+      setSelectedEvent(null)
+      setFocusedCalendarEvent(null)
+      setSelectedPath(null)
+      setSelectedName(null)
+      setIsNewNote(false)
+      setOpenNoteContent('')
+      setCreatingEventDate(null)
+    }
+    setSelectedContact(contact)
+  }, [])
+
   const handleOpenContactFromMention = useCallback((contact: Contact) => {
     const currentPath = selectedPathRef.current
     setNavHistory((history) => (currentPath ? [...history, currentPath] : history))
+    setSettingsOpen(false)
     setZone('contacts')
     setSelectedContact(contact)
     setSelectedEvent(null)
@@ -177,11 +218,13 @@ export default function App() {
     setFocusedCalendarEvent(null)
     setIsNewNote(false)
     setOpenNoteContent('')
+    setCreatingEventDate(null)
   }, [])
 
   const handleOpenCalendarEvent = useCallback((event: CalendarEvent) => {
     const currentPath = selectedPathRef.current
     setNavHistory((history) => (currentPath ? [...history, currentPath] : history))
+    setSettingsOpen(false)
     setSelectedEvent(event)
     setFocusedCalendarEvent(event)
     setSelectedContact(null)
@@ -189,12 +232,66 @@ export default function App() {
     setSelectedName(null)
     setIsNewNote(false)
     setOpenNoteContent('')
+    setCreatingEventDate(null)
+  }, [])
+
+  const handleOpenCreateEvent = useCallback((date: Date) => {
+    const currentPath = selectedPathRef.current
+    setNavHistory((history) => (currentPath ? [...history, currentPath] : history))
+    setSettingsOpen(false)
+    setSelectedEvent(null)
+    setFocusedCalendarEvent(null)
+    setSelectedContact(null)
+    setSelectedPath(null)
+    setSelectedName(null)
+    setIsNewNote(false)
+    setOpenNoteContent('')
+    setCreatingEventDate(date)
+  }, [])
+
+  // No skipFlushRef/unsaved-draft handling needed here — unlike closing a
+  // note or contact, nothing is written to disk until Create is actually
+  // clicked, so there's nothing to flush or lose by just discarding state.
+  const handleCloseCreateEvent = useCallback(() => {
+    setCreatingEventDate(null)
+  }, [])
+
+  const handleEventCreated = useCallback((_event: CalendarEvent) => {
+    setCreatingEventDate(null)
+    setRefreshKey((k) => k + 1)
   }, [])
 
   const handleEventDeleted = useCallback(() => {
     setNavHistory([])
     setSelectedEvent(null)
     setFocusedCalendarEvent(null)
+  }, [])
+
+  const handleOpenSettings = useCallback((category?: string) => {
+    const currentPath = selectedPathRef.current
+    setNavHistory((history) => (currentPath ? [...history, currentPath] : history))
+    setSettingsOpen(true)
+    setSettingsCategory(category ?? null)
+    // Forces SettingsView to remount even if Settings is already open (e.g.
+    // the native "About Cortex" menu item clicked while on a different
+    // category) — SettingsView only reads `initialCategory` on mount, so
+    // without this a same-value category (or an already-mounted instance)
+    // would silently do nothing. The app autosaves everything immediately,
+    // so a remount here never risks losing in-progress state.
+    setSettingsRequestId((id) => id + 1)
+    setSelectedContact(null)
+    setSelectedEvent(null)
+    setFocusedCalendarEvent(null)
+    setSelectedPath(null)
+    setSelectedName(null)
+    setIsNewNote(false)
+    setOpenNoteContent('')
+    setCreatingEventDate(null)
+  }, [])
+
+  const handleCloseSettings = useCallback(() => {
+    setSettingsOpen(false)
+    setSettingsCategory(null)
   }, [])
 
   const handleNavBack = useCallback(() => {
@@ -211,6 +308,7 @@ export default function App() {
   }, [openNoteAtPath])
 
   const handleZoneChange = useCallback(async (newZone: AppZone) => {
+    setSettingsOpen(false)
     setZone(newZone)
     setSelectedContact(null)
     setSelectedEvent(null)
@@ -219,6 +317,7 @@ export default function App() {
     setIsNewNote(false)
     setOpenNoteContent('')
     setNavHistory([])
+    setCreatingEventDate(null)
 
     if (newZone === 'diary') {
       const today = format(new Date(), 'yyyy-MM-dd')
@@ -239,6 +338,7 @@ export default function App() {
   }, [handleError])
 
   const handleOpenDiaryEntry = useCallback(async (dateStr: string) => {
+    setSettingsOpen(false)
     setZone('diary')
     setSelectedContact(null)
     setSelectedEvent(null)
@@ -247,6 +347,7 @@ export default function App() {
     setIsNewNote(false)
     setOpenNoteContent('')
     setNavHistory([])
+    setCreatingEventDate(null)
     try {
       const diaryPath = await window.cortex.storage.openDiaryEntry(dateStr)
       setSelectedPath(diaryPath)
@@ -276,6 +377,14 @@ export default function App() {
   useEffect(() => {
     if (focusedCalendarEvent) setFeatureZone('calendar')
   }, [focusedCalendarEvent])
+
+  useEffect(() => {
+    return window.cortex.menu.onOpenSettings((category) => handleOpenSettings(category))
+  }, [handleOpenSettings])
+
+  useEffect(() => {
+    return window.cortex.menu.onOpenEncryptedFile(() => setOpenEncryptedFileModal(true))
+  }, [])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -318,12 +427,18 @@ export default function App() {
             <button onClick={dismissError}>Dismiss</button>
           </div>
         )}
+        <OpenEncryptedFileModal
+          open={openEncryptedFileModal}
+          onClose={() => setOpenEncryptedFileModal(false)}
+        />
       </ThemeProvider>
     )
   }
 
   return (
     <ThemeProvider vaultReady={vaultReady}>
+      <TextSizeProvider vaultReady={vaultReady}>
+      <FontProvider vaultReady={vaultReady}>
       <div className="cortex-app">
         <LeftPanel
           zone={zone}
@@ -333,7 +448,7 @@ export default function App() {
           onGoToVaultRoot={handleGoToVaultRoot}
           onCloseOpenFile={handleCloseOpenFile}
           selectedContact={selectedContact}
-          onSelectContact={setSelectedContact}
+          onSelectContact={handleSelectContact}
           activeTag={activeTag}
           onTagSelect={setActiveTag}
           refreshKey={refreshKey}
@@ -342,6 +457,7 @@ export default function App() {
           vaultName={vaultStatus.name}
           onCloseVault={handleCloseVault}
           onSearchResultSelect={handleSearchResultSelect}
+          onOpenSettings={() => handleOpenSettings()}
         />
         <div className="cortex-main">
           {error && (
@@ -350,31 +466,51 @@ export default function App() {
               <button onClick={dismissError}>Dismiss</button>
             </div>
           )}
-          <CenterPanel
-            zone={zone}
-            selectedPath={selectedPath}
-            selectedName={selectedName}
-            selectedContact={selectedContact}
-            selectedEvent={selectedEvent}
-            openInEditMode={openInEditMode}
-            isNewNote={isNewNote}
-            skipFlushRef={skipFlushRef}
-            canGoBack={navHistory.length > 0}
-            onNavBack={handleNavBack}
-            onNoteRenamed={handleNoteRenamed}
-            onOpenNote={handleSelectPath}
-            onNoteSaved={handleNoteSaved}
-            onContactUpdated={setSelectedContact}
-            onOpenContact={handleOpenContactFromMention}
-            onOpenDiaryEntry={handleOpenDiaryEntry}
-            onCloseDiaryEntry={handleCloseDiaryEntry}
-            onEventDeleted={handleEventDeleted}
-            onRefresh={refresh}
-            onError={handleError}
-            vaultName={vaultStatus.name}
-            onCloseFile={handleCloseOpenFile}
-            onContentChange={setOpenNoteContent}
-          />
+          {settingsOpen ? (
+            <SettingsView
+              key={settingsRequestId}
+              initialCategory={settingsCategory}
+              canGoBack={navHistory.length > 0}
+              onNavBack={handleNavBack}
+              onClose={handleCloseSettings}
+              onError={handleError}
+            />
+          ) : creatingEventDate ? (
+            <CreateEventView
+              date={creatingEventDate}
+              canGoBack={navHistory.length > 0}
+              onNavBack={handleNavBack}
+              onClose={handleCloseCreateEvent}
+              onCreated={handleEventCreated}
+              onError={handleError}
+            />
+          ) : (
+            <CenterPanel
+              zone={zone}
+              selectedPath={selectedPath}
+              selectedName={selectedName}
+              selectedContact={selectedContact}
+              selectedEvent={selectedEvent}
+              openInEditMode={openInEditMode}
+              isNewNote={isNewNote}
+              skipFlushRef={skipFlushRef}
+              canGoBack={navHistory.length > 0}
+              onNavBack={handleNavBack}
+              onNoteRenamed={handleNoteRenamed}
+              onOpenNote={handleSelectPath}
+              onNoteSaved={handleNoteSaved}
+              onContactUpdated={setSelectedContact}
+              onOpenContact={handleOpenContactFromMention}
+              onOpenDiaryEntry={handleOpenDiaryEntry}
+              onCloseDiaryEntry={handleCloseDiaryEntry}
+              onEventDeleted={handleEventDeleted}
+              onRefresh={refresh}
+              onError={handleError}
+              vaultName={vaultStatus.name}
+              onCloseFile={handleCloseOpenFile}
+              onContentChange={setOpenNoteContent}
+            />
+          )}
         </div>
         <RightPanel
           featureZone={featureZone}
@@ -392,6 +528,8 @@ export default function App() {
           onCloseDiaryEntry={handleCloseDiaryEntry}
           onOpenEvent={handleOpenCalendarEvent}
           onOpenContact={handleOpenContactFromMention}
+          onCreateEvent={handleOpenCreateEvent}
+          openEventId={selectedEvent?.id ?? null}
         />
       </div>
       <SearchPalette
@@ -399,6 +537,12 @@ export default function App() {
         onClose={() => setShowSearchPalette(false)}
         onResultSelect={handleSearchResultSelect}
       />
+      <OpenEncryptedFileModal
+        open={openEncryptedFileModal}
+        onClose={() => setOpenEncryptedFileModal(false)}
+      />
+      </FontProvider>
+      </TextSizeProvider>
     </ThemeProvider>
   )
 }

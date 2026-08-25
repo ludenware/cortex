@@ -1,4 +1,5 @@
 import {
+  defaultDiaryContent,
   defaultNoteContent,
   defaultUntitledNoteContent,
   extractNoteTitle,
@@ -21,15 +22,16 @@ import fs from 'fs/promises'
 import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { getVaultPath } from './vault-manager'
+import { vaultFs } from './node-vault-fs'
+import { encryptEnvelope, decryptEnvelope, isEncryptedPath, toEncryptedPath, fromEncryptedPath } from './crypto-envelope'
 
 export function getDataPath(): string {
   return getVaultPath()
 }
 
 export async function readVaultFile(relativePath: string): Promise<string> {
-  const fullPath = vaultFilePath(relativePath)
   try {
-    return await fs.readFile(fullPath, 'utf-8')
+    return await vaultFs.readFile(relativePath)
   } catch {
     return ''
   }
@@ -37,21 +39,66 @@ export async function readVaultFile(relativePath: string): Promise<string> {
 
 export async function writeVaultFile(relativePath: string, content: string): Promise<void> {
   const normalizedPath = normalizeRelative(relativePath)
-  const fullPath = vaultFilePath(normalizedPath)
-  await fs.mkdir(path.dirname(fullPath), { recursive: true })
-  await fs.writeFile(fullPath, normalizeDiaryContent(normalizedPath, content), 'utf-8')
+  await vaultFs.writeFile(normalizedPath, normalizeDiaryContent(normalizedPath, content))
+}
+
+// --- Optional per-file encryption ---
+// Envelope format/crypto lives in ./crypto-envelope.ts. The envelope itself
+// is a JSON/base64 text blob, so it round-trips fine through vaultFs's
+// string-based readFile/writeFile — no separate binary file API needed.
+
+/** Decrypts an already-encrypted note (`path.md.enc`) in place, without
+ *  removing the encrypted file — used for viewing/editing an encrypted
+ *  note that stays encrypted on disk (the note's own password is cached
+ *  in memory by the renderer for the session, not re-derived from this
+ *  call each time). Throws DecryptionError on a wrong password. */
+export async function readEncryptedNote(relativePath: string, password: string): Promise<string> {
+  const normalizedPath = normalizeRelative(relativePath)
+  const raw = await vaultFs.readFile(normalizedPath)
+  const decrypted = decryptEnvelope(Buffer.from(raw, 'utf-8'), password)
+  return decrypted.toString('utf-8')
+}
+
+/** Re-encrypts and overwrites an already-encrypted note with new content,
+ *  using the same password it was opened with (no re-derivation of a new
+ *  salt-per-save would be wrong here — a fresh salt/IV *is* generated each
+ *  call via encryptEnvelope, only the password is reused). */
+export async function writeEncryptedNote(relativePath: string, content: string, password: string): Promise<void> {
+  const normalizedPath = normalizeRelative(relativePath)
+  const envelope = encryptEnvelope(Buffer.from(normalizeDiaryContent(normalizedPath, content), 'utf-8'), password)
+  await vaultFs.writeFile(normalizedPath, envelope.toString('utf-8'))
+}
+
+/** Converts a plain `path.md` note to `path.md.enc`, deleting the plaintext
+ *  original. Returns the new encrypted path. Caller (CenterPanel) must
+ *  close the note *before* calling this — same "close first" ordering the
+ *  existing delete flows use, so autosave can't write the plaintext file
+ *  back after it's gone. */
+export async function encryptNote(relativePath: string, password: string): Promise<string> {
+  const normalizedPath = normalizeRelative(relativePath)
+  const plaintext = await vaultFs.readFile(normalizedPath)
+  const envelope = encryptEnvelope(Buffer.from(plaintext, 'utf-8'), password)
+  const encryptedPath = toEncryptedPath(normalizedPath)
+  await vaultFs.writeFile(encryptedPath, envelope.toString('utf-8'))
+  await vaultFs.remove(normalizedPath)
+  return encryptedPath
+}
+
+/** Converts `path.md.enc` back to a plain `path.md`, deleting the
+ *  encrypted file. Throws DecryptionError if `password` is wrong — nothing
+ *  is written or deleted in that case. Returns the restored plain path. */
+export async function decryptNote(relativePath: string, password: string): Promise<string> {
+  const normalizedPath = normalizeRelative(relativePath)
+  const raw = await vaultFs.readFile(normalizedPath)
+  const decrypted = decryptEnvelope(Buffer.from(raw, 'utf-8'), password) // throws before any write/delete if wrong
+  const plainPath = fromEncryptedPath(normalizedPath)
+  await vaultFs.writeFile(plainPath, decrypted.toString('utf-8'))
+  await vaultFs.remove(normalizedPath)
+  return plainPath
 }
 
 function normalizeRelative(p: string): string {
   return p.replace(/\\/g, '/').replace(/^\/+/, '').replace(/^\.\//, '')
-}
-
-function vaultFilePath(relativePath: string): string {
-  const normalized = normalizeRelative(relativePath)
-  if (!normalized || normalized.includes('..')) {
-    throw new Error(`Invalid note path: ${relativePath}`)
-  }
-  return path.join(getDataPath(), ...normalized.split('/'))
 }
 
 function vaultBasename(relativePath: string, ext?: string): string {
@@ -67,6 +114,15 @@ function vaultJoin(dir: string, fileName: string): string {
   const normalizedDir = normalizeRelative(dir)
   if (!normalizedDir || normalizedDir === '.') return fileName
   return `${normalizedDir}/${fileName}`
+}
+
+/** Vault-relative equivalent of `path.relative(basePath, fullPath)` — both
+ *  arguments are already vault-relative strings, so this is just prefix
+ *  stripping rather than real path arithmetic. */
+function relativeToBase(basePath: string, fullPath: string): string {
+  const normalizedBase = normalizeRelative(basePath)
+  if (!normalizedBase || normalizedBase === '.') return fullPath
+  return fullPath.startsWith(`${normalizedBase}/`) ? fullPath.slice(normalizedBase.length + 1) : fullPath
 }
 
 function isHiddenPath(relativePath: string): boolean {
@@ -97,14 +153,14 @@ export async function buildVaultTree(dir: string, basePath: string): Promise<Tre
 }
 
 export async function buildNotesTree(basePath: string): Promise<TreeNode[]> {
-  const notesDir = path.join(basePath, VAULT_FOLDERS.NOTES)
-  try { await fs.mkdir(notesDir, { recursive: true }) } catch { /* ok */ }
+  const notesDir = vaultJoin(basePath, VAULT_FOLDERS.NOTES)
+  try { await vaultFs.mkdir(notesDir) } catch { /* ok */ }
   return buildVaultTreeWithHidden(notesDir, basePath, NOTES_HIDDEN_PATHS, false)
 }
 
 export async function buildDiaryTree(basePath: string): Promise<TreeNode[]> {
-  const diaryDir = path.join(basePath, VAULT_FOLDERS.DIARY)
-  try { await fs.mkdir(diaryDir, { recursive: true }) } catch { /* ok */ }
+  const diaryDir = vaultJoin(basePath, VAULT_FOLDERS.DIARY)
+  try { await vaultFs.mkdir(diaryDir) } catch { /* ok */ }
   return buildVaultTreeWithHidden(diaryDir, basePath, new Set<string>(), true)
 }
 
@@ -112,14 +168,14 @@ async function buildVaultTreeWithHidden(dir: string, basePath: string, hidden: S
   const nodes: TreeNode[] = []
   let entries
   try {
-    entries = await fs.readdir(dir, { withFileTypes: true })
+    entries = await vaultFs.readdir(dir)
   } catch {
     return nodes
   }
 
   const sorted = entries.sort((a, b) => {
-    if (a.isDirectory() && !b.isDirectory()) return -1
-    if (!a.isDirectory() && b.isDirectory()) return 1
+    if (a.isDirectory && !b.isDirectory) return -1
+    if (!a.isDirectory && b.isDirectory) return 1
     // Files: sort ascending for notes, descending for diary (newest first)
     const cmp = a.name.localeCompare(b.name)
     return sortDesc ? -cmp : cmp
@@ -127,13 +183,12 @@ async function buildVaultTreeWithHidden(dir: string, basePath: string, hidden: S
 
   for (const entry of sorted) {
     if (entry.name.startsWith('.')) continue
-    const relativePath = normalizeRelative(path.relative(basePath, path.join(dir, entry.name)))
+    const fullPath = vaultJoin(dir, entry.name)
+    const relativePath = relativeToBase(basePath, fullPath)
     const topLevel = relativePath.split('/')[0]
     if (hidden.has(topLevel)) continue
 
-    const fullPath = path.join(dir, entry.name)
-
-    if (entry.isDirectory()) {
+    if (entry.isDirectory) {
       const children = await buildVaultTreeWithHidden(fullPath, basePath, hidden, sortDesc)
       nodes.push({
         name: entry.name,
@@ -142,13 +197,20 @@ async function buildVaultTreeWithHidden(dir: string, basePath: string, hidden: S
         children,
       })
     } else {
-      const stat = await fs.stat(fullPath)
+      const stat = await vaultFs.stat(fullPath)
       const isMarkdown = entry.name.endsWith('.md')
+      const isEncryptedMarkdown = entry.name.endsWith('.md.enc')
+      const displayName = isEncryptedMarkdown
+        ? entry.name.replace(/\.md\.enc$/, '')
+        : isMarkdown
+          ? entry.name.replace(/\.md$/, '')
+          : entry.name
       nodes.push({
-        name: isMarkdown ? entry.name.replace(/\.md$/, '') : entry.name,
+        name: displayName,
         path: relativePath,
         type: 'file',
-        modified: stat.mtime.toISOString(),
+        modified: stat.mtime,
+        ...(isEncryptedPath(relativePath) ? { encrypted: true } : {}),
       })
     }
   }
@@ -175,7 +237,7 @@ export async function listMarkdownFiles(
   async function walk(currentDir: string) {
     let entries
     try {
-      entries = await fs.readdir(currentDir, { withFileTypes: true })
+      entries = await vaultFs.readdir(currentDir)
     } catch {
       return
     }
@@ -188,25 +250,25 @@ export async function listMarkdownFiles(
       // exclude it via the isHiddenPath check below, same as before.
       const isCalendarDir = entry.name === VAULT_FOLDERS.CALENDAR
       if (entry.name.startsWith('.') && !(isCalendarDir && !skipHiddenPaths)) continue
-      const fullPath = path.join(currentDir, entry.name)
-      if (entry.isDirectory()) {
+      const fullPath = vaultJoin(currentDir, entry.name)
+      if (entry.isDirectory) {
         await walk(fullPath)
       } else if (entry.name.endsWith('.md')) {
         try {
-          const stat = await fs.stat(fullPath)
-          const rel = normalizeRelative(path.relative(basePath, fullPath))
+          const stat = await vaultFs.stat(fullPath)
+          const rel = relativeToBase(basePath, fullPath)
           // The hidden-section check must be relative to the walk root
           // (dir), not basePath — otherwise scoping the walk to e.g.
           // "diary/" (itself a hidden top-level folder) would flag every
           // file inside it as hidden and filter out the whole section.
           if (skipHiddenPaths) {
-            const relFromDir = normalizeRelative(path.relative(dir, fullPath))
+            const relFromDir = relativeToBase(dir, fullPath)
             if (isHiddenPath(relFromDir)) continue
           }
           files.push({
             name: entry.name.replace('.md', ''),
             path: rel,
-            modified: stat.mtime.toISOString(),
+            modified: stat.mtime,
           })
         } catch {
           // File removed between readdir and stat
@@ -223,8 +285,7 @@ export async function createFolder(relativePath: string): Promise<string> {
   if (!isNotesPath(relativePath)) {
     throw new Error('Folders can only be created inside notes')
   }
-  const fullPath = path.join(getDataPath(), relativePath)
-  await fs.mkdir(fullPath, { recursive: true })
+  await vaultFs.mkdir(relativePath)
   return normalizeRelative(relativePath)
 }
 
@@ -246,22 +307,14 @@ export async function createNote(
   let counter = 2
   let relativePath = noteRelativePath(dir, label)
 
-  while (true) {
-    const fullPath = vaultFilePath(relativePath)
-    try {
-      await fs.access(fullPath)
-      label = `${UNTITLED_NOTE} ${counter++}`
-      relativePath = noteRelativePath(dir, label)
-    } catch {
-      break
-    }
+  while (await vaultFs.exists(relativePath)) {
+    label = `${UNTITLED_NOTE} ${counter++}`
+    relativePath = noteRelativePath(dir, label)
   }
 
-  const fullPath = vaultFilePath(relativePath)
-  await fs.mkdir(path.dirname(fullPath), { recursive: true })
-  await fs.writeFile(fullPath, defaultUntitledNoteContent(), 'utf-8')
-  const stat = await fs.stat(fullPath)
-  return { name: label, path: relativePath, modified: stat.mtime.toISOString() }
+  await vaultFs.writeFile(relativePath, defaultUntitledNoteContent())
+  const stat = await vaultFs.stat(relativePath)
+  return { name: label, path: relativePath, modified: stat.mtime }
 }
 
 export async function createNoteWithTitle(
@@ -273,19 +326,15 @@ export async function createNoteWithTitle(
     throw new Error('Notes can only be created inside the notes folder')
   }
   const sanitized = sanitizeNoteName(title)
-  let relativePath = noteRelativePath(dir, sanitized)
-  const fullPath = vaultFilePath(relativePath)
+  const relativePath = noteRelativePath(dir, sanitized)
 
-  try {
-    await fs.access(fullPath)
-    const stat = await fs.stat(fullPath)
-    return { name: sanitized, path: relativePath, modified: stat.mtime.toISOString(), created: false }
-  } catch {
-    await fs.mkdir(path.dirname(fullPath), { recursive: true })
-    await fs.writeFile(fullPath, defaultNoteContent(title.trim()), 'utf-8')
-    const stat = await fs.stat(fullPath)
-    return { name: sanitized, path: relativePath, modified: stat.mtime.toISOString(), created: true }
+  if (await vaultFs.exists(relativePath)) {
+    const stat = await vaultFs.stat(relativePath)
+    return { name: sanitized, path: relativePath, modified: stat.mtime, created: false }
   }
+  await vaultFs.writeFile(relativePath, defaultNoteContent(title.trim()))
+  const stat = await vaultFs.stat(relativePath)
+  return { name: sanitized, path: relativePath, modified: stat.mtime, created: true }
 }
 
 export async function syncNoteFilename(relativePath: string, content: string): Promise<string> {
@@ -300,13 +349,8 @@ export async function syncNoteFilename(relativePath: string, content: string): P
     if (date === currentDate) return normalizedPath
 
     const nextPath = resolveDiaryPath(date)
-    try {
-      await fs.access(vaultFilePath(nextPath))
+    if (await vaultFs.exists(nextPath)) {
       throw new Error(`A diary entry already exists for ${date}`)
-    } catch (err) {
-      if (err instanceof Error && !err.message.includes('ENOENT')) {
-        throw err
-      }
     }
     return renamePath(normalizedPath, nextPath)
   }
@@ -333,11 +377,9 @@ export async function syncNoteFilename(relativePath: string, content: string): P
 
     if (newRelative === normalizedPath) return normalizedPath
 
-    const fullNew = vaultFilePath(newRelative)
-    try {
-      await fs.access(fullNew)
+    if (await vaultFs.exists(newRelative)) {
       candidate = `${sanitized} ${counter++}`
-    } catch {
+    } else {
       return await renamePath(normalizedPath, newRelative)
     }
   }
@@ -347,67 +389,55 @@ export async function movePath(fromRelative: string, toFolderRelative: string): 
   if (isDiaryPath(fromRelative)) {
     throw new Error('Diary entries are locked to their date')
   }
-  if (!isNotesPath(fromRelative) || !isNotesPath(toFolderRelative)) {
+  // Empty means "the notes root" (dropping on the vault-name bar at the top
+  // of the file tree), same convention createNote/createNoteWithTitle
+  // already use — not "no folder prefix at all", which would move the file
+  // outside notes/ entirely and fail the isNotesPath check below.
+  const toFolder = !toFolderRelative ? VAULT_FOLDERS.NOTES : toFolderRelative
+  if (!isNotesPath(fromRelative) || !isNotesPath(toFolder)) {
     throw new Error('Notes can only be moved inside the notes folder')
   }
-  const base = getDataPath()
-  const from = path.join(base, fromRelative)
-  const entryName = path.basename(from)
-  const destDir = toFolderRelative
-    ? path.join(base, toFolderRelative)
-    : base
-  await fs.mkdir(destDir, { recursive: true })
-  const dest = path.join(destDir, entryName)
-  if (path.normalize(from) === path.normalize(dest)) {
+  const entryName = vaultBasename(fromRelative)
+  const dest = vaultJoin(toFolder, entryName)
+  if (normalizeRelative(fromRelative) === normalizeRelative(dest)) {
     return normalizeRelative(fromRelative)
   }
-  await fs.rename(from, dest)
-  return normalizeRelative(path.relative(base, dest))
+  await vaultFs.rename(fromRelative, dest)
+  return normalizeRelative(dest)
 }
 
 export async function deletePath(relativePath: string): Promise<boolean> {
-  const fullPath = path.join(getDataPath(), relativePath)
-  const stat = await fs.stat(fullPath)
-  if (stat.isDirectory()) {
-    await fs.rm(fullPath, { recursive: true })
-  } else {
-    await fs.unlink(fullPath)
-  }
+  await vaultFs.remove(relativePath)
   return true
 }
 
 export async function renamePath(oldPath: string, newPath: string): Promise<string> {
   const normalizedOld = normalizeRelative(oldPath)
   const normalizedNew = normalizeRelative(newPath)
-  const fullOld = vaultFilePath(normalizedOld)
-  const fullNew = vaultFilePath(normalizedNew)
-  await fs.mkdir(path.dirname(fullNew), { recursive: true })
-  await fs.rename(fullOld, fullNew)
+  await vaultFs.rename(normalizedOld, normalizedNew)
   return normalizedNew
 }
 
 function attachmentDir(_relativeFolder: string): string {
-  return path.join(getDataPath(), VAULT_FOLDERS.ATTACHMENTS)
+  return VAULT_FOLDERS.ATTACHMENTS
 }
 
 export async function listAttachments(relativeFolder: string): Promise<AttachmentEntry[]> {
   const dir = attachmentDir(relativeFolder)
   try {
-    const entries = await fs.readdir(dir, { withFileTypes: true })
+    const entries = await vaultFs.readdir(dir)
     const attachments: AttachmentEntry[] = []
     for (const entry of entries) {
-      if (!entry.isFile()) continue
+      if (entry.isDirectory) continue
       if (entry.name.endsWith('.md')) continue
-      const fullPath = path.join(dir, entry.name)
-      const stat = await fs.stat(fullPath)
-      const rel = relativeFolder
-        ? normalizeRelative(path.join(relativeFolder, entry.name))
-        : entry.name
+      const fullPath = vaultJoin(dir, entry.name)
+      const stat = await vaultFs.stat(fullPath)
+      const rel = relativeFolder ? normalizeRelative(vaultJoin(relativeFolder, entry.name)) : entry.name
       attachments.push({
         name: entry.name,
         path: rel,
         size: stat.size,
-        modified: stat.mtime.toISOString(),
+        modified: stat.mtime,
       })
     }
     return attachments.sort((a, b) => a.name.localeCompare(b.name))
@@ -416,6 +446,10 @@ export async function listAttachments(relativeFolder: string): Promise<Attachmen
   }
 }
 
+// Attachments are imported from an arbitrary external path chosen via a
+// native file dialog, and copied in as binary data — outside VaultFS's
+// text-only readFile/writeFile contract, so this one function keeps using
+// Node's fs/dialog directly rather than going through the interface.
 export async function addAttachment(
   relativeFolder: string,
   sourcePath?: string
@@ -434,34 +468,31 @@ export async function addAttachment(
   const base = path.basename(originalName, ext)
   const safeName = `${base}-${uuidv4().slice(0, 8)}${ext}`
   const destDir = attachmentDir(relativeFolder)
-  await fs.mkdir(destDir, { recursive: true })
-  const destPath = path.join(destDir, safeName)
-  await fs.copyFile(filePath, destPath)
-  const stat = await fs.stat(destPath)
-  const rel = `${VAULT_FOLDERS.ATTACHMENTS}/${safeName}`
+  await vaultFs.mkdir(destDir)
+  const destRelative = vaultJoin(destDir, safeName)
+  const destAbsolute = path.join(getDataPath(), destRelative)
+  await fs.copyFile(filePath, destAbsolute)
+  const stat = await vaultFs.stat(destRelative)
   return {
     name: safeName,
-    path: rel,
+    path: destRelative,
     size: stat.size,
-    modified: stat.mtime.toISOString(),
+    modified: stat.mtime,
   }
 }
 
 export async function deleteAttachment(relativePath: string): Promise<boolean> {
-  const fullPath = path.join(getDataPath(), relativePath)
-  await fs.unlink(fullPath)
+  await vaultFs.remove(relativePath)
   return true
 }
 
 export async function indexAllTags(): Promise<{ tag: string; count: number; paths: string[] }[]> {
-  const base = getDataPath()
-  const files = await listMarkdownFiles(base, base, { skipHiddenPaths: false })
+  const files = await listMarkdownFiles('', '', { skipHiddenPaths: false })
   const tagMap = new Map<string, string[]>()
 
   for (const file of files) {
-    const filePath = vaultFilePath(file.path)
     try {
-      const content = await fs.readFile(filePath, 'utf-8')
+      const content = await vaultFs.readFile(file.path)
       // Contact files (and any other "typed" file) are prefixed with a
       // `// type = ... //` marker line, which breaks the frontmatter-tags
       // regex unless stripped first.
@@ -479,4 +510,36 @@ export async function indexAllTags(): Promise<{ tag: string; count: number; path
   return Array.from(tagMap.entries())
     .map(([tag, paths]) => ({ tag, count: paths.length, paths }))
     .sort((a, b) => b.count - a.count || a.tag.localeCompare(b.tag))
+}
+
+export async function openDiaryEntry(dateStr: string): Promise<string> {
+  const relativePath = resolveDiaryPath(dateStr)
+  if (!(await vaultFs.exists(relativePath))) {
+    await vaultFs.writeFile(relativePath, defaultDiaryContent(dateStr))
+  }
+  return relativePath
+}
+
+export async function listDiaryDates(): Promise<string[]> {
+  const diaryDir = VAULT_FOLDERS.DIARY
+  const dates: string[] = []
+  try {
+    const years = await vaultFs.readdir(diaryDir)
+    for (const year of years) {
+      if (!year.isDirectory) continue
+      const yearDir = vaultJoin(diaryDir, year.name)
+      const months = await vaultFs.readdir(yearDir)
+      for (const month of months) {
+        if (!month.isDirectory) continue
+        const files = await vaultFs.readdir(vaultJoin(yearDir, month.name))
+        for (const file of files) {
+          const m = file.name.match(/^(\d{4}-\d{2}-\d{2})\.md$/)
+          if (m) dates.push(m[1])
+        }
+      }
+    }
+  } catch {
+    // diary dir may not exist yet
+  }
+  return dates
 }

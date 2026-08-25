@@ -6,7 +6,7 @@ import {
   stripTagsBlock,
 } from '@cortex/core'
 import type { SearchResult } from '@cortex/core'
-import { getDataPath, listMarkdownFiles, readVaultFile } from './storage'
+import { listMarkdownFiles, readVaultFile } from './storage'
 import { parseContactFile } from './contacts-store'
 import { parseEventFile } from './calendar-store'
 
@@ -32,8 +32,7 @@ export async function searchVault(query: string): Promise<SearchResult[]> {
   const q = query.trim().toLowerCase()
   if (!q) return []
 
-  const base = getDataPath()
-  const files = await listMarkdownFiles(base, base, { skipHiddenPaths: false })
+  const files = await listMarkdownFiles('', '', { skipHiddenPaths: false })
 
   const notes: SearchResult[] = []
   const diary: SearchResult[] = []

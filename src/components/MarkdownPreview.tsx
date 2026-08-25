@@ -6,7 +6,7 @@ import { toggleTaskAtIndex } from '../utils/note-tasks'
 import { splitMarkdownQuoteSegments } from '../utils/markdown-quotes'
 import { findContactMentions } from '../utils/contact-mentions'
 import { useRef, useMemo, isValidElement, type ReactNode, type ReactElement } from 'react'
-import './MarkdownPreview.css'
+import '../styles/center-panel.css'
 
 interface MarkdownPreviewProps {
   content: string

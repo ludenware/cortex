@@ -1,5 +1,6 @@
-import { app, BrowserWindow, ipcMain, dialog, nativeImage, nativeTheme } from 'electron'
-import { defaultDiaryContent, resolveDiaryPath, VAULT_FOLDERS } from '@cortex/core'
+import { app, BrowserWindow, ipcMain, dialog, nativeImage, nativeTheme, shell } from 'electron'
+import { VAULT_FOLDERS, DEFAULT_FONT_ID, DEFAULT_FONT_WEIGHT_ID } from '@cortex/core'
+import type { FontWeightLevel, TextSize, ThemeMode } from '@cortex/core'
 import path from 'path'
 import fs from 'fs/promises'
 import { existsSync } from 'fs'
@@ -23,7 +24,14 @@ import {
   addAttachment,
   deleteAttachment,
   indexAllTags,
+  openDiaryEntry,
+  listDiaryDates,
+  readEncryptedNote,
+  writeEncryptedNote,
+  encryptNote,
+  decryptNote,
 } from './storage'
+import { decryptEnvelope } from './crypto-envelope'
 import { searchVault } from './search'
 import {
   listStoredEvents,
@@ -50,7 +58,22 @@ import {
   isVaultConfigured,
   closeVault,
 } from './vault-manager'
-import { getTheme, setTheme } from './settings-store'
+import {
+  getTheme,
+  setTheme,
+  getTextSize,
+  setTextSize,
+  getUIFont,
+  setUIFont,
+  getUIFontWeight,
+  setUIFontWeight,
+  getComposeFont,
+  setComposeFont,
+  getComposeFontWeight,
+  setComposeFontWeight,
+  exportSettings,
+  resetSettings,
+} from './settings-store'
 import type { CloudProvider } from '@cortex/core'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -112,6 +135,15 @@ function createWindow() {
     mainWindow?.show()
   })
 
+  // Any link that would otherwise open a new Electron window (target="_blank",
+  // window.open — GitHub/social links in About, external markdown links)
+  // opens in the user's actual default browser instead, tab-reusing if it's
+  // already open. Denying the action prevents the small popup BrowserWindow.
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    shell.openExternal(url)
+    return { action: 'deny' }
+  })
+
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
     mainWindow.webContents.openDevTools({ mode: 'detach' })
@@ -126,7 +158,10 @@ function createWindow() {
 
 app.whenReady().then(async () => {
   await initVault()
-  setApplicationMenu()
+  setApplicationMenu(
+    (category) => mainWindow?.webContents.send('settings:open', category),
+    () => mainWindow?.webContents.send('menu:openEncryptedFile')
+  )
   updateMacAppIcon()
   nativeTheme.on('updated', updateMacAppIcon)
   createWindow()
@@ -182,11 +217,79 @@ ipcMain.handle('settings:getTheme', async () => {
   return getTheme()
 })
 
-ipcMain.handle('settings:setTheme', async (_, theme: 'light' | 'dark') => {
+ipcMain.handle('settings:setTheme', async (_, theme: ThemeMode) => {
   requireVault()
   await setTheme(theme)
   return true
 })
+
+ipcMain.handle('settings:getTextSize', async () => {
+  if (!isVaultConfigured()) return 'medium'
+  return getTextSize()
+})
+
+ipcMain.handle('settings:setTextSize', async (_, size: TextSize) => {
+  requireVault()
+  await setTextSize(size)
+  return true
+})
+
+ipcMain.handle('settings:getUIFont', async () => {
+  if (!isVaultConfigured()) return DEFAULT_FONT_ID
+  return getUIFont()
+})
+
+ipcMain.handle('settings:setUIFont', async (_, fontId: string) => {
+  requireVault()
+  await setUIFont(fontId)
+  return true
+})
+
+ipcMain.handle('settings:getUIFontWeight', async () => {
+  if (!isVaultConfigured()) return DEFAULT_FONT_WEIGHT_ID
+  return getUIFontWeight()
+})
+
+ipcMain.handle('settings:setUIFontWeight', async (_, weightId: FontWeightLevel) => {
+  requireVault()
+  await setUIFontWeight(weightId)
+  return true
+})
+
+ipcMain.handle('settings:getComposeFont', async () => {
+  if (!isVaultConfigured()) return DEFAULT_FONT_ID
+  return getComposeFont()
+})
+
+ipcMain.handle('settings:setComposeFont', async (_, fontId: string) => {
+  requireVault()
+  await setComposeFont(fontId)
+  return true
+})
+
+ipcMain.handle('settings:getComposeFontWeight', async () => {
+  if (!isVaultConfigured()) return DEFAULT_FONT_WEIGHT_ID
+  return getComposeFontWeight()
+})
+
+ipcMain.handle('settings:setComposeFontWeight', async (_, weightId: FontWeightLevel) => {
+  requireVault()
+  await setComposeFontWeight(weightId)
+  return true
+})
+
+ipcMain.handle('settings:export', async (_, defaultName: string) => {
+  requireVault()
+  return exportSettings(defaultName)
+})
+
+ipcMain.handle('settings:reset', async () => {
+  requireVault()
+  await resetSettings()
+  return true
+})
+
+ipcMain.handle('app:getVersion', () => app.getVersion())
 
 // --- Storage ---
 
@@ -197,31 +300,27 @@ ipcMain.handle('storage:getDataPath', () => {
 
 ipcMain.handle('storage:getVaultTree', async (_, zone?: 'notes' | 'diary') => {
   requireVault()
-  const basePath = getDataPath()
   if (zone === 'diary') {
-    return buildDiaryTree(basePath)
+    return buildDiaryTree('')
   }
-  return buildNotesTree(basePath)
+  return buildNotesTree('')
 })
 
 ipcMain.handle('storage:getTree', async (_, section: 'notes' | 'diary') => {
   requireVault()
-  const basePath = getDataPath()
   if (section === 'diary') {
-    return buildDiaryTree(basePath)
+    return buildDiaryTree('')
   }
-  return buildNotesTree(basePath)
+  return buildNotesTree('')
 })
 
 ipcMain.handle('storage:listFiles', async (_, section: 'notes' | 'diary') => {
   requireVault()
-  const basePath = getDataPath()
   if (section === 'diary') {
-    const dir = path.join(basePath, VAULT_FOLDERS.DIARY)
-    const files = await listMarkdownFiles(dir, basePath)
+    const files = await listMarkdownFiles(VAULT_FOLDERS.DIARY, '')
     return files.sort((a, b) => b.name.localeCompare(a.name))
   }
-  const files = await listMarkdownFiles(basePath, basePath)
+  const files = await listMarkdownFiles('', '')
   return files.sort((a, b) => a.name.localeCompare(b.name))
 })
 
@@ -276,39 +375,9 @@ ipcMain.handle('storage:rename', async (_, oldPath: string, newPath: string) => 
   return renamePath(oldPath, newPath)
 })
 
-async function openDiaryEntry(dateStr: string): Promise<string> {
-  const relativePath = resolveDiaryPath(dateStr)
-  const fullPath = path.join(getDataPath(), relativePath)
-  try {
-    await fs.access(fullPath)
-  } catch {
-    const content = defaultDiaryContent(dateStr)
-    await fs.mkdir(path.dirname(fullPath), { recursive: true })
-    await fs.writeFile(fullPath, content, 'utf-8')
-  }
-  return relativePath
-}
-
 ipcMain.handle('storage:listDiaryDates', async () => {
   requireVault()
-  const basePath = getDataPath()
-  const diaryDir = path.join(basePath, VAULT_FOLDERS.DIARY)
-  const dates: string[] = []
-  try {
-    const years = await fs.readdir(diaryDir, { withFileTypes: true })
-    for (const year of years) {
-      if (!year.isDirectory()) continue
-      const yearDir = path.join(diaryDir, year.name)
-      const files = await fs.readdir(yearDir)
-      for (const file of files) {
-        const m = file.match(/^(\d{4}-\d{2}-\d{2})\.md$/)
-        if (m) dates.push(m[1])
-      }
-    }
-  } catch {
-    // diary dir may not exist yet
-  }
-  return dates
+  return listDiaryDates()
 })
 
 ipcMain.handle('storage:openDiaryEntry', async (_, dateStr: string) => {
@@ -412,6 +481,60 @@ ipcMain.handle('contacts:getByPath', async (_, relativePath: string) => {
 ipcMain.handle('calendar:getByPath', async (_, relativePath: string) => {
   requireVault()
   return getEventByRelativePath(relativePath)
+})
+
+// --- Encryption ---
+
+ipcMain.handle('encryption:read', async (_, relativePath: string, password: string) => {
+  requireVault()
+  return readEncryptedNote(relativePath, password)
+})
+
+ipcMain.handle('encryption:write', async (_, relativePath: string, content: string, password: string) => {
+  requireVault()
+  await writeEncryptedNote(relativePath, content, password)
+  return true
+})
+
+ipcMain.handle('encryption:encrypt', async (_, relativePath: string, password: string) => {
+  requireVault()
+  return encryptNote(relativePath, password)
+})
+
+ipcMain.handle('encryption:decrypt', async (_, relativePath: string, password: string) => {
+  requireVault()
+  return decryptNote(relativePath, password)
+})
+
+// Standalone flow, deliberately outside VaultFS's vault-relative contract —
+// same "arbitrary absolute path chosen via native dialog" exception the PDF
+// export and attachment copy-in already use, since this must work with no
+// vault open at all (the "someone emailed me an encrypted file" case).
+ipcMain.handle('encryption:pickExternalFile', async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog(mainWindow!, {
+    properties: ['openFile'],
+    filters: [
+      { name: 'Encrypted files', extensions: ['enc'] },
+      { name: 'All files', extensions: ['*'] },
+    ],
+  })
+  if (canceled || filePaths.length === 0) return null
+  return { path: filePaths[0], name: path.basename(filePaths[0]) }
+})
+
+ipcMain.handle('encryption:decryptExternalFile', async (_, absolutePath: string, password: string) => {
+  const raw = await fs.readFile(absolutePath)
+  const decrypted = decryptEnvelope(raw, password)
+  return { content: decrypted.toString('utf-8'), name: path.basename(absolutePath) }
+})
+
+ipcMain.handle('encryption:saveDecryptedCopy', async (_, defaultName: string, content: string) => {
+  const { filePath, canceled } = await dialog.showSaveDialog(mainWindow!, {
+    defaultPath: defaultName,
+  })
+  if (canceled || !filePath) return null
+  await fs.writeFile(filePath, content, 'utf-8')
+  return filePath
 })
 
 // --- PDF Export ---

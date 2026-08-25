@@ -5,7 +5,7 @@ import {
 } from 'lucide-react'
 import type { ReactNode } from 'react'
 import type { MarkdownAction } from '../utils/markdown'
-import './MarkdownToolbar.css'
+import '../styles/center-panel.css'
 
 interface MarkdownToolbarProps {
   onAction: (action: MarkdownAction) => void

@@ -6,7 +6,9 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
-    "isolatedModules": true
+    "isolatedModules": true,
+    "lib": ["ES2022"],
+    "types": []
   },
   "include": ["src"]
 }

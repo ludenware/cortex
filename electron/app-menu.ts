@@ -1,19 +1,15 @@
-import { app, Menu, dialog } from 'electron'
+import { app, Menu } from 'electron'
 
 app.setName('Cortex')
 
-export function setApplicationMenu() {
+export function setApplicationMenu(
+  onOpenSettings: (category?: string) => void,
+  onOpenEncryptedFile: () => void
+) {
   const isMac = process.platform === 'darwin'
 
-  const showAbout = () => {
-    void dialog.showMessageBox({
-      type: 'info',
-      title: 'About Cortex',
-      message: `Cortex v${app.getVersion()}`,
-      detail: 'Open-source cross-platform note-taking app with calendar, diary, contacts, and tags.',
-      buttons: ['OK'],
-    })
-  }
+  const showAbout = () => onOpenSettings('about')
+  const showPreferences = () => onOpenSettings()
 
   const template: Electron.MenuItemConstructorOptions[] = [
     ...(isMac
@@ -22,6 +18,8 @@ export function setApplicationMenu() {
             label: app.name,
             submenu: [
               { label: 'About Cortex', click: showAbout },
+              { type: 'separator' as const },
+              { label: 'Preferences…', accelerator: 'Cmd+,', click: showPreferences },
               { type: 'separator' as const },
               { role: 'services' as const },
               { type: 'separator' as const },
@@ -37,7 +35,10 @@ export function setApplicationMenu() {
     {
       label: 'File',
       submenu: [
+        { label: 'Open Encrypted File…', accelerator: 'CmdOrCtrl+Shift+O', click: onOpenEncryptedFile },
+        { type: 'separator' as const },
         ...(isMac ? [] : [{ label: 'About Cortex', click: showAbout }]),
+        ...(isMac ? [] : [{ label: 'Settings…', accelerator: 'Ctrl+,', click: showPreferences }]),
         ...(isMac ? [] : [{ type: 'separator' as const }]),
         isMac ? { role: 'close' as const } : { role: 'quit' as const },
       ],

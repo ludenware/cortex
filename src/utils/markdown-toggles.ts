@@ -160,10 +160,16 @@ export class MarkdownToggleController {
 
     // Map the original selection through the edit so it stays put — clicking
     // another heading level right after keeps the same lines selected instead
-    // of collapsing to a single cursor.
+    // of collapsing to a single cursor. `mapPos`'s assoc defaults to -1
+    // ("bias backward"), which is wrong here: a cursor with no selection
+    // sits exactly at the line's start position, the same position the new
+    // prefix gets inserted at, so the default left it *before* the prefix
+    // instead of after it (e.g. clicking H1 on an empty line landed the
+    // cursor at `|#` instead of `# |`). Passing assoc=1 biases mapped
+    // positions to land after the inserted text instead.
     const changeSet = state.changes(changes)
-    const newAnchor = changeSet.mapPos(sel.anchor)
-    const newHead = changeSet.mapPos(sel.head)
+    const newAnchor = changeSet.mapPos(sel.anchor, 1)
+    const newHead = changeSet.mapPos(sel.head, 1)
 
     view.dispatch({
       changes,

@@ -1,13 +1,13 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   ChevronRight, ChevronDown, FileText, Folder, FolderPlus,
-  Plus, Trash2, FilePlus, File, CalendarDays,
+  Plus, Trash2, FilePlus, File, CalendarDays, FoldVertical, UnfoldVertical, Lock,
 } from 'lucide-react'
 import { format, subDays, addDays } from 'date-fns'
-import { isDiaryPath } from '@cortex/core'
+import { isDiaryPath, isEncryptedPath } from '@cortex/core'
 import type { TreeNode, AppZone } from '../types'
 import ConfirmDialog from './ConfirmDialog'
-import './FileBrowser.css'
+import '../styles/left-panel.css'
 
 interface FileBrowserProps {
   zone: AppZone
@@ -25,6 +25,7 @@ interface FileBrowserProps {
 interface PendingDelete {
   path: string
   name: string
+  isFolder: boolean
 }
 
 function TreeItem({
@@ -33,6 +34,8 @@ function TreeItem({
   selectedPath,
   activeFolder,
   dragPath,
+  dragOverPath,
+  onDragOverTarget,
   isDiaryMode,
   onSelectFile,
   onSelectFolder,
@@ -46,10 +49,12 @@ function TreeItem({
   selectedPath: string | null
   activeFolder: string
   dragPath: string | null
+  dragOverPath: string | null
+  onDragOverTarget: (path: string | null) => void
   isDiaryMode: boolean
   onSelectFile: (path: string, name: string) => void
   onSelectFolder: (path: string) => void
-  onDelete: (path: string, name: string, e: React.MouseEvent) => void
+  onDelete: (path: string, name: string, isFolder: boolean, e: React.MouseEvent) => void
   onMove: (from: string, toFolder: string) => void
   expanded: Set<string>
   toggleExpand: (path: string) => void
@@ -58,16 +63,47 @@ function TreeItem({
   const isOpen = expanded.has(node.path)
   const isFileActive = selectedPath === node.path
   const isFolderActive = isFolder && activeFolder === node.path
-  const isMarkdown = node.path.endsWith('.md') || (node.type === 'file' && !node.path.includes('.'))
+  // .md.enc counts as "markdown-like" for click-routing purposes (opens via
+  // onSelectFile, same as a plain .md note) even though its ciphertext
+  // obviously isn't renderable markdown yet — CenterPanel's loadNote()
+  // detects the .enc suffix itself and shows the locked/password state
+  // instead of trying to render it.
+  const isMarkdown = node.path.endsWith('.md') || node.path.endsWith('.md.enc') || (node.type === 'file' && !node.path.includes('.'))
   const isDragging = dragPath === node.path
   // Diary entries are locked — no drag targets
   const isDropTarget = !isDiaryMode && isFolder && dragPath !== null && dragPath !== node.path && !node.path.startsWith(`${dragPath}/`)
-  const isDiaryEntry = isDiaryPath(node.path)
+  // Which one specific folder the dragged item is currently hovering over
+  // (out of potentially many valid drop targets) — this is what turns
+  // green, distinct from isDropTarget's "any of these would work" outline.
+  const isDragHover = isDropTarget && dragOverPath === node.path
+  // Only individual day files are date-locked — year/month folders are
+  // regular directories, deletable/navigable like any other folder.
+  const isDiaryEntry = isDiaryPath(node.path) && !isFolder
 
   const handleDragStart = (e: React.DragEvent) => {
     if (isDiaryMode) { e.preventDefault(); return }
     e.dataTransfer.setData('text/plain', node.path)
     e.dataTransfer.effectAllowed = 'move'
+
+    // The browser snapshots the drag-ghost image synchronously when
+    // dragstart fires — before React can re-render with .dragging's own
+    // opacity — so without this the ghost that follows the cursor is
+    // full-strength and visually buries the green drop-target highlight
+    // underneath it. A custom, much more transparent clone fixes that;
+    // it only needs to exist in the DOM for the instant of the snapshot,
+    // so it's removed again on the next tick.
+    const original = e.currentTarget as HTMLElement
+    const ghost = original.cloneNode(true) as HTMLElement
+    ghost.style.position = 'fixed'
+    ghost.style.top = '-1000px'
+    ghost.style.left = '-1000px'
+    ghost.style.width = `${original.offsetWidth}px`
+    ghost.style.opacity = '0.15'
+    ghost.style.pointerEvents = 'none'
+    document.body.appendChild(ghost)
+    e.dataTransfer.setDragImage(ghost, 12, 12)
+    setTimeout(() => ghost.remove(), 0)
+
     onMove(node.path, '__drag_start__')
   }
 
@@ -80,12 +116,25 @@ function TreeItem({
     if (isDiaryMode || !isFolder || !dragPath || dragPath === node.path) return
     e.preventDefault()
     e.dataTransfer.dropEffect = 'move'
+    if (isDropTarget) onDragOverTarget(node.path)
+  }
+
+  // Fires when the pointer leaves this row's DOM subtree — guarded so
+  // moving between the folder icon/name/delete-icon spans *inside* the
+  // same row (still children of this button) doesn't flicker the
+  // highlight off and immediately back on.
+  const handleDragLeave = (e: React.DragEvent) => {
+    if (!isDropTarget) return
+    const related = e.relatedTarget as Node | null
+    if (related && e.currentTarget.contains(related)) return
+    onDragOverTarget(null)
   }
 
   const handleDrop = (e: React.DragEvent) => {
     if (isDiaryMode) return
     e.preventDefault()
     e.stopPropagation()
+    onDragOverTarget(null)
     const from = e.dataTransfer.getData('text/plain') || dragPath
     if (!from || from === node.path || node.path.startsWith(`${from}/`)) return
     onMove(from, node.path)
@@ -94,12 +143,13 @@ function TreeItem({
   return (
     <>
       <button
-        className={`tree-item ${isFileActive || isFolderActive ? 'active' : ''} ${isFolderActive && !isFileActive ? 'folder-active' : ''} ${isDragging ? 'dragging' : ''} ${isDropTarget ? 'drop-target' : ''} ${isDiaryEntry ? 'diary-locked' : ''}`}
+        className={`tree-item ${isFileActive || isFolderActive ? 'active' : ''} ${isFolderActive && !isFileActive ? 'folder-active' : ''} ${isDragging ? 'dragging' : ''} ${isDropTarget ? 'drop-target' : ''} ${isDragHover ? 'drag-hover' : ''} ${isDiaryEntry ? 'diary-locked' : ''}`}
         style={{ paddingLeft: 8 + depth * 14 }}
         draggable={!isDiaryMode && !isDiaryEntry}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
         onDrop={handleDrop}
         onClick={(e) => {
           e.stopPropagation()
@@ -114,23 +164,23 @@ function TreeItem({
         }}
       >
         {isFolder ? (
-          isOpen ? <ChevronDown size={14} className="tree-chevron" /> : <ChevronRight size={14} className="tree-chevron" />
+          isOpen ? <ChevronDown size={16} className="tree-chevron" /> : <ChevronRight size={16} className="tree-chevron" />
         ) : (
           <span className="tree-chevron-spacer" />
         )}
         {isFolder ? (
-          <Folder size={14} className="tree-icon folder" />
+          <Folder size={16} className="tree-icon folder" />
+        ) : node.encrypted ? (
+          <Lock size={16} className="tree-icon encrypted" />
         ) : isMarkdown ? (
-          isDiaryEntry ? <CalendarDays size={14} className="tree-icon diary" /> : <FileText size={14} className="tree-icon file" />
+          isDiaryEntry ? <CalendarDays size={16} className="tree-icon diary" /> : <FileText size={16} className="tree-icon file" />
         ) : (
-          <File size={14} className="tree-icon attachment" />
+          <File size={16} className="tree-icon attachment" />
         )}
         <span className={`tree-name ${isFileActive ? 'tree-name-open' : ''}`}>{node.name}</span>
-        {(!isDiaryMode || !isFolder) && (
-          <span className="tree-delete" onClick={(e) => onDelete(node.path, node.name, e)} role="button" tabIndex={0}>
-            <Trash2 size={12} />
-          </span>
-        )}
+        <span className="tree-delete" onClick={(e) => onDelete(node.path, node.name, isFolder, e)} role="button" tabIndex={0}>
+          <Trash2 size={16} />
+        </span>
       </button>
       {isFolder && isOpen && node.children?.map((child) => (
         <TreeItem
@@ -140,6 +190,8 @@ function TreeItem({
           selectedPath={selectedPath}
           activeFolder={activeFolder}
           dragPath={dragPath}
+          dragOverPath={dragOverPath}
+          onDragOverTarget={onDragOverTarget}
           isDiaryMode={isDiaryMode}
           onSelectFile={onSelectFile}
           onSelectFolder={onSelectFolder}
@@ -172,6 +224,7 @@ export default function FileBrowser({
   const [newName, setNewName] = useState('')
   const [pendingDelete, setPendingDelete] = useState<PendingDelete | null>(null)
   const [dragPath, setDragPath] = useState<string | null>(null)
+  const [dragOverPath, setDragOverPath] = useState<string | null>(null)
 
   const isDiaryMode = zone === 'diary'
 
@@ -223,7 +276,7 @@ export default function FileBrowser({
   }
 
   const handleSelectFile = (path: string, name: string) => {
-    if (!path.endsWith('.md')) return
+    if (!path.endsWith('.md') && !isEncryptedPath(path)) return
     setActiveFolder(pathDir(path))
     onSelect(path, name)
   }
@@ -239,6 +292,7 @@ export default function FileBrowser({
     }
     if (toFolder === '__drag_end__') {
       setDragPath(null)
+      setDragOverPath(null)
       return
     }
     try {
@@ -252,6 +306,7 @@ export default function FileBrowser({
       onError('Failed to move item')
     } finally {
       setDragPath(null)
+      setDragOverPath(null)
     }
   }
 
@@ -282,14 +337,19 @@ export default function FileBrowser({
     }
   }
 
-  const requestDelete = (path: string, name: string, e: React.MouseEvent) => {
+  const requestDelete = (path: string, name: string, isFolder: boolean, e: React.MouseEvent) => {
     e.stopPropagation()
-    setPendingDelete({ path, name })
+    setPendingDelete({ path, name, isFolder })
   }
 
   const confirmDelete = async () => {
     if (!pendingDelete) return
-    const deletingOpenFile = selectedPath === pendingDelete.path
+    // Deleting a folder that merely *contains* the open file (e.g. a year
+    // or month folder) also needs to close it — not just an exact path
+    // match — otherwise CenterPanel's autosave can write the file straight
+    // back to disk after its parent folder is gone.
+    const deletingOpenFile = !!selectedPath &&
+      (selectedPath === pendingDelete.path || selectedPath.startsWith(`${pendingDelete.path}/`))
     try {
       await window.cortex.storage.deleteFile(pendingDelete.path)
       if (deletingOpenFile) {
@@ -342,6 +402,13 @@ export default function FileBrowser({
 
   const filteredTree = tagPaths ? filterTreeByPaths(tree, tagPaths) : tree
 
+  const allFolderPaths = collectFolderPaths(filteredTree)
+  const allExpanded = allFolderPaths.length > 0 && allFolderPaths.every((p) => expanded.has(p))
+
+  const handleToggleExpandAll = () => {
+    setExpanded(allExpanded ? new Set() : new Set(allFolderPaths))
+  }
+
   if (zone === 'contacts') {
     return (
       <div className="file-browser-empty">
@@ -364,20 +431,10 @@ export default function FileBrowser({
     onGoToVaultRoot()
   }
 
-  const cwdRelative = selectedPath
-    ? selectedPath.replace(/\.md$/, '')
-    : activeFolder
-
-  const cwdDisplay = vaultName
-    ? cwdRelative
-      ? `${vaultName}/${cwdRelative}`
-      : vaultName
-    : cwdRelative || 'Vault'
-
   return (
     <div className="file-browser">
       {isDiaryMode ? (
-        <div className="file-browser-actions diary-nav">
+        <div className="file-browser-actions">
           <button className="fb-action-btn fb-diary-btn" onClick={() => openDiaryDay(-1)} title="Open or create yesterday's diary">
             ← Yesterday
           </button>
@@ -391,18 +448,18 @@ export default function FileBrowser({
       ) : (
         <div className="file-browser-actions">
           <button className="fb-action-btn" onClick={handleCreateNote} title="New note in current folder">
-            <Plus size={14} /> Note
+            <Plus size={16} /> Note
           </button>
           <button className="fb-action-btn" onClick={() => { setShowNewFolder(true); setNewName('') }} title="New subfolder">
-            <FolderPlus size={14} /> Folder
+            <FolderPlus size={16} /> Folder
           </button>
           <button className="fb-action-btn" onClick={handleAddAttachment} title="Add attachment to current folder">
-            <FilePlus size={14} /> File
+            <FilePlus size={16} /> File
           </button>
         </div>
       )}
 
-      {!isDiaryMode && (
+      <div className="fb-toolbar-row">
         <button
           type="button"
           className={`vault-root-bar ${activeFolder === '' && !selectedPath ? 'active' : ''}`}
@@ -412,7 +469,16 @@ export default function FileBrowser({
         >
           {vaultName ?? 'Vault'}
         </button>
-      )}
+        <button
+          type="button"
+          className="fb-icon-btn"
+          onClick={handleToggleExpandAll}
+          disabled={allFolderPaths.length === 0}
+          title={allExpanded ? 'Collapse all folders' : 'Expand all folders'}
+        >
+          {allExpanded ? <FoldVertical size={16} /> : <UnfoldVertical size={16} />}
+        </button>
+      </div>
 
       <div className="file-tree">
         {filteredTree.map((node) => (
@@ -423,6 +489,8 @@ export default function FileBrowser({
             selectedPath={selectedPath}
             activeFolder={activeFolder}
             dragPath={dragPath}
+            dragOverPath={dragOverPath}
+            onDragOverTarget={setDragOverPath}
             isDiaryMode={isDiaryMode}
             onSelectFile={handleSelectFile}
             onSelectFolder={handleSelectFolder}
@@ -439,10 +507,6 @@ export default function FileBrowser({
               : 'Empty — create a note to get started'}
           </div>
         )}
-      </div>
-
-      <div className="browser-cwd" title={cwdDisplay}>
-        <span className="browser-cwd-text">{cwdDisplay}</span>
       </div>
 
       {!isDiaryMode && showNewFolder && (
@@ -463,8 +527,12 @@ export default function FileBrowser({
 
       <ConfirmDialog
         open={!!pendingDelete}
-        title="Delete item"
-        message={`Are you sure you want to delete "${pendingDelete?.name}"? This cannot be undone.`}
+        title={pendingDelete?.isFolder ? 'Delete folder' : 'Delete item'}
+        message={
+          pendingDelete?.isFolder
+            ? `Are you sure you want to delete the folder "${pendingDelete?.name}" and everything inside it? This cannot be undone.`
+            : `Are you sure you want to delete "${pendingDelete?.name}"? This cannot be undone.`
+        }
         onConfirm={confirmDelete}
         onCancel={() => setPendingDelete(null)}
       />
@@ -476,6 +544,17 @@ function pathDir(filePath: string): string {
   const parts = filePath.split('/')
   parts.pop()
   return parts.join('/')
+}
+
+function collectFolderPaths(nodes: TreeNode[]): string[] {
+  const paths: string[] = []
+  for (const node of nodes) {
+    if (node.type === 'folder') {
+      paths.push(node.path)
+      paths.push(...collectFolderPaths(node.children ?? []))
+    }
+  }
+  return paths
 }
 
 function filterTreeByPaths(tree: TreeNode[], paths: Set<string>): TreeNode[] {

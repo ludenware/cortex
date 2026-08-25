@@ -1,5 +1,5 @@
 import type { EditorMode } from '../types'
-import './ModeToggle.css'
+import '../styles/center-panel.css'
 
 interface ModeToggleProps {
   mode: EditorMode

@@ -9,20 +9,29 @@
   margin-bottom: 6px;
 }
 
+/* Contacts are always --contact-tag-color (orange) — same identifying
+   color as @mentions everywhere else in the app (notes, diary, the
+   calendar's own day-list cards), so a linked contact reads the same way
+   regardless of where you're looking at it from. */
 .contact-picker-chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
   padding: 4px 6px 4px 10px;
-  background: var(--accent-muted);
-  color: var(--accent);
+  background: color-mix(in srgb, var(--contact-tag-color) 15%, transparent);
+  color: var(--contact-tag-color);
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight);
 }
 
 .contact-picker-chip.clickable {
   cursor: pointer;
+}
+
+.contact-picker-chip.clickable:hover {
+  background: color-mix(in srgb, var(--contact-tag-hover) 20%, transparent);
+  color: var(--contact-tag-hover);
 }
 
 .contact-picker-chip button {
@@ -62,9 +71,9 @@
   width: 100%;
   padding: 7px 10px;
   border-radius: 6px;
-  font-size: 13px;
+  font-size: var(--text-main);
   text-align: left;
-  color: var(--text-primary);
+  color: var(--text-color);
 }
 
 .contact-picker-option:hover {
@@ -77,6 +86,6 @@
 }
 
 .contact-picker-empty {
-  font-size: 13px;
-  color: var(--text-muted);
+  font-size: var(--text-main);
+  color: var(--text-color);
 }

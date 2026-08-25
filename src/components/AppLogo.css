@@ -14,8 +14,8 @@
 }
 
 .app-logo-row .app-logo-label {
-  font-size: 17px;
-  font-weight: 700;
+  font-size: var(--text-title);
+  font-weight: var(--ui-font-weight-strong);
   letter-spacing: -0.02em;
-  color: var(--text-primary);
+  color: var(--text-color);
 }

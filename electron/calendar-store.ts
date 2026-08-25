@@ -1,19 +1,17 @@
 import type { CalendarEvent } from '@cortex/core'
 import { VAULT_FOLDERS, withFileTypeLine, stripFileTypeLine } from '@cortex/core'
-import fs from 'fs/promises'
-import path from 'path'
 import { v4 as uuidv4 } from 'uuid'
 import { buildFrontmatter, parseFrontmatter, sanitizeFileName } from './markdown-files'
-import { getDataPath } from './storage'
+import { vaultFs } from './node-vault-fs'
 
 export type StoredCalendarEvent = CalendarEvent
 
 function calendarDir(): string {
-  return path.join(getDataPath(), VAULT_FOLDERS.CALENDAR)
+  return VAULT_FOLDERS.CALENDAR
 }
 
 function eventFilePath(id: string, title: string): string {
-  return path.join(calendarDir(), `${sanitizeFileName(title)}-${id.slice(0, 8)}.md`)
+  return `${calendarDir()}/${sanitizeFileName(title)}-${id.slice(0, 8)}.md`
 }
 
 function parseCsv(value: string | undefined): string[] | undefined {
@@ -43,7 +41,7 @@ export function parseEventFile(raw: string): StoredCalendarEvent | null {
 }
 
 async function writeEventFile(event: StoredCalendarEvent, existingPath?: string): Promise<string> {
-  await fs.mkdir(calendarDir(), { recursive: true })
+  await vaultFs.mkdir(calendarDir())
   const filePath = existingPath ?? eventFilePath(event.id, event.title)
   const content = withFileTypeLine(
     'calendar',
@@ -64,21 +62,21 @@ async function writeEventFile(event: StoredCalendarEvent, existingPath?: string)
       event.notes ?? ''
     )
   )
-  await fs.writeFile(filePath, content, 'utf-8')
+  await vaultFs.writeFile(filePath, content)
   return filePath
 }
 
 async function findEventFile(id: string): Promise<string | null> {
-  let entries: string[]
+  let entries
   try {
-    entries = await fs.readdir(calendarDir())
+    entries = await vaultFs.readdir(calendarDir())
   } catch {
     return null
   }
-  for (const name of entries) {
-    if (!name.endsWith('.md')) continue
-    const filePath = path.join(calendarDir(), name)
-    const raw = await fs.readFile(filePath, 'utf-8')
+  for (const entry of entries) {
+    if (entry.isDirectory || !entry.name.endsWith('.md')) continue
+    const filePath = `${calendarDir()}/${entry.name}`
+    const raw = await vaultFs.readFile(filePath)
     const event = parseEventFile(raw)
     if (event?.id === id) return filePath
   }
@@ -86,16 +84,16 @@ async function findEventFile(id: string): Promise<string | null> {
 }
 
 async function readAllEvents(): Promise<StoredCalendarEvent[]> {
-  let entries: string[]
+  let entries
   try {
-    entries = await fs.readdir(calendarDir())
+    entries = await vaultFs.readdir(calendarDir())
   } catch {
     return []
   }
   const events: StoredCalendarEvent[] = []
-  for (const name of entries) {
-    if (!name.endsWith('.md')) continue
-    const raw = await fs.readFile(path.join(calendarDir(), name), 'utf-8')
+  for (const entry of entries) {
+    if (entry.isDirectory || !entry.name.endsWith('.md')) continue
+    const raw = await vaultFs.readFile(`${calendarDir()}/${entry.name}`)
     const event = parseEventFile(raw)
     if (event) events.push(event)
   }
@@ -127,14 +125,14 @@ export async function updateStoredEvent(
   const filePath = await findEventFile(id)
   if (!filePath) return null
 
-  const raw = await fs.readFile(filePath, 'utf-8')
+  const raw = await vaultFs.readFile(filePath)
   const existing = parseEventFile(raw)
   if (!existing) return null
 
   const updated: StoredCalendarEvent = { ...existing, ...updates }
 
   if (updates.title && updates.title !== existing.title) {
-    await fs.unlink(filePath)
+    await vaultFs.remove(filePath)
     await writeEventFile(updated)
   } else {
     await writeEventFile(updated, filePath)
@@ -145,13 +143,13 @@ export async function updateStoredEvent(
 export async function deleteStoredEvent(id: string): Promise<boolean> {
   const filePath = await findEventFile(id)
   if (!filePath) return false
-  await fs.unlink(filePath)
+  await vaultFs.remove(filePath)
   return true
 }
 
 export async function getEventByRelativePath(relativePath: string): Promise<StoredCalendarEvent | null> {
   try {
-    const raw = await fs.readFile(path.join(getDataPath(), relativePath), 'utf-8')
+    const raw = await vaultFs.readFile(relativePath)
     return parseEventFile(raw)
   } catch {
     return null

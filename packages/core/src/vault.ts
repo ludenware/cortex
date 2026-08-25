@@ -1,4 +1,6 @@
-export type ThemeMode = 'light' | 'dark'
+export type ThemeMode = 'light' | 'dark' | 'system'
+
+export type TextSize = 'small' | 'medium' | 'large'
 
 export type CloudProvider = 'icloud' | 'google-drive' | 'onedrive' | 'dropbox'
 
@@ -36,8 +38,8 @@ export const NOTES_HIDDEN_PATHS = new Set([
 ])
 
 export function resolveDiaryPath(dateStr: string): string {
-  const [year] = dateStr.split('-')
-  return `${VAULT_FOLDERS.DIARY}/${year}/${dateStr}.md`
+  const [year, month] = dateStr.split('-')
+  return `${VAULT_FOLDERS.DIARY}/${year}/${month}/${dateStr}.md`
 }
 
 export function isDiaryPath(relativePath: string): boolean {

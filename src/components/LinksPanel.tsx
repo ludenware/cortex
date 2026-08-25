@@ -6,7 +6,7 @@ import {
 } from '@cortex/core'
 import { stripTagsBlock } from '../utils/note-tags'
 import { resolveWikiLinkPath, wikiLinkTitleMatches } from '../utils/wiki-links'
-import './LinksPanel.css'
+import '../styles/right-panel.css'
 
 interface ResolvedLink {
   title: string

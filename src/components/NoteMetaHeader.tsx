@@ -1,5 +1,5 @@
 import { splitNoteHeaderPath } from '../utils/note-meta'
-import './NoteMetaHeader.css'
+import '../styles/center-panel.css'
 
 interface NoteMetaHeaderProps {
   content: string

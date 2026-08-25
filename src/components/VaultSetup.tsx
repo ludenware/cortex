@@ -121,7 +121,7 @@ export default function VaultSetup({ onComplete, onError }: VaultSetupProps) {
     <div className="vault-setup">
       <div className="vault-setup-card">
         <div className="vault-setup-logo">
-          <AppLogo variant="full" size="xl" />
+          <AppLogo variant="full" size="xxxl" />
         </div>
         <p className="vault-setup-subtitle">Select a vault to get started</p>
 

@@ -2,7 +2,7 @@ import { Calendar, Link2 } from 'lucide-react'
 import CalendarPanel from './CalendarPanel'
 import LinksPanel from './LinksPanel'
 import type { CalendarEvent, Contact } from '../types'
-import './RightPanel.css'
+import '../styles/right-panel.css'
 
 export type FeatureZone = 'calendar' | 'links'
 
@@ -22,6 +22,8 @@ interface RightPanelProps {
   onCloseDiaryEntry?: (dateStr: string) => void
   onOpenEvent?: (event: CalendarEvent) => void
   onOpenContact?: (contact: Contact) => void
+  onCreateEvent?: (date: Date) => void
+  openEventId?: string | null
 }
 
 const FEATURE_TABS: { id: FeatureZone; label: string; icon: typeof Calendar }[] = [
@@ -45,6 +47,8 @@ export default function RightPanel({
   onCloseDiaryEntry,
   onOpenEvent,
   onOpenContact,
+  onCreateEvent,
+  openEventId,
 }: RightPanelProps) {
   return (
     <aside className="right-panel">
@@ -56,7 +60,7 @@ export default function RightPanel({
             className={`right-panel-tab ${featureZone === id ? 'active' : ''}`}
             onClick={() => onFeatureZoneChange(id)}
           >
-            <Icon size={14} />
+            <Icon size={16} />
             {label}
           </button>
         ))}
@@ -73,8 +77,10 @@ export default function RightPanel({
             onOpenDiaryEntry={onOpenDiaryEntry}
             onOpenEvent={onOpenEvent}
             onOpenContact={onOpenContact}
+            onCreateEvent={onCreateEvent}
             diaryRefreshKey={diaryRefreshKey}
             fileRefreshKey={refreshKey}
+            openEventId={openEventId}
           />
         )}
         {featureZone === 'links' && (

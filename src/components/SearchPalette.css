@@ -27,13 +27,13 @@
 
 .search-palette-icon {
   flex-shrink: 0;
-  color: var(--text-muted);
+  color: var(--text-color);
 }
 
 .search-palette-input-row input {
   flex: 1;
   min-width: 0;
-  font-size: 15px;
+  font-size: var(--text-main);
   border: none;
   outline: none;
   background: transparent;
@@ -51,11 +51,11 @@
 }
 
 .search-palette-group-label {
-  font-size: 10px;
-  font-weight: 600;
+  font-size: var(--text-main);
+  font-weight: var(--ui-font-weight-strong);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--text-muted);
+  color: var(--text-color);
   padding: 6px 10px 4px;
 }
 
@@ -66,9 +66,9 @@
   width: 100%;
   padding: 8px 10px;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: var(--text-main);
   text-align: left;
-  color: var(--text-primary);
+  color: var(--text-color);
 }
 
 .search-palette-item:hover,
@@ -80,7 +80,7 @@
 .search-palette-item-icon {
   flex-shrink: 0;
   margin-top: 2px;
-  color: var(--text-muted);
+  color: var(--text-color);
 }
 
 .search-palette-item-text {
@@ -98,8 +98,8 @@
 }
 
 .search-palette-item-subtitle {
-  font-size: 12px;
-  color: var(--text-muted);
+  font-size: var(--text-main);
+  color: var(--text-color);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -107,7 +107,7 @@
 
 .search-palette-empty {
   padding: 24px 12px;
-  font-size: 13px;
+  font-size: var(--text-main);
   text-align: center;
-  color: var(--text-muted);
+  color: var(--text-color);
 }

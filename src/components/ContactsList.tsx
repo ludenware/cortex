@@ -3,7 +3,7 @@ import { Plus, User, Trash2 } from 'lucide-react'
 import { UNTITLED_CONTACT } from '@cortex/core'
 import type { Contact } from '../types'
 import ConfirmDialog from './ConfirmDialog'
-import './ContactsList.css'
+import '../styles/left-panel.css'
 
 interface ContactsListProps {
   selected: Contact | null
